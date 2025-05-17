@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import { useState } from 'react';
 import {
@@ -13,7 +13,7 @@ import {
   PieChart,
   Pie,
   Cell,
-  LabelList
+  Label
 } from 'recharts';
 import { TrendingUp } from 'lucide-react';
 import {
@@ -132,18 +132,32 @@ export default function Home() {
                 cx="50%"
                 cy="50%"
                 outerRadius={110}
+                label={false}
+                labelLine={false}
                 fill="#8884d8"
               >
-                <LabelList
-                  dataKey="name"
-                  position="inside"
-                />
                 {productosMasVendidos.map((entry, index) => (
                   <Cell key={`cell-${index}`} fill={colores[index % colores.length]} />
                 ))}
               </Pie>
             </PieChart>
           </ChartContainer>
+          <div className="grid grid-cols-2 gap-2 sm:hidden mt-4">
+            {productosMasVendidos.map((item, index) => (
+              <div key={item.name} className="flex items-center space-x-2 text-sm">
+                <div className="w-3 h-3 rounded-full" style={{ backgroundColor: colores[index % colores.length] }}></div>
+                <span>{item.name} ({item.visitors})</span>
+              </div>
+            ))}
+          </div>
+          <div className="hidden sm:grid grid-cols-3 gap-2 mt-6">
+            {productosMasVendidos.map((item, index) => (
+              <div key={item.name} className="flex items-center space-x-2 text-sm">
+                <div className="w-3 h-3 rounded-full" style={{ backgroundColor: colores[index % colores.length] }}></div>
+                <span>{item.name} ({item.visitors})</span>
+              </div>
+            ))}
+          </div>
         </CardContent>
         <CardFooter className="flex-col gap-2 text-sm">
           <div className="flex items-center gap-2 font-medium leading-none">
