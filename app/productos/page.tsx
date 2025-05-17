@@ -55,6 +55,10 @@ export default function ProductosPage() {
   const [productoActual, setProductoActual] = useState<Producto | null>(null);
   const [imagenPreview, setImagenPreview] = useState<string | null>(null);
   const [busqueda, setBusqueda] = useState('');
+  const [categoriaFiltro, setCategoriaFiltro] = useState('');
+  const [precioMin, setPrecioMin] = useState('');
+  const [precioMax, setPrecioMax] = useState('');
+  const [stockBajo, setStockBajo] = useState(false);
 
   const abrirModalAgregar = () => {
     setProductoActual(null);
@@ -102,26 +106,62 @@ export default function ProductosPage() {
     setModalAbierto(false);
   };
 
-  const productosFiltrados = productos.filter(prod =>
-    prod.nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
-    prod.categoria.toLowerCase().includes(busqueda.toLowerCase())
-  );
+  const productosFiltrados = productos.filter((prod) => {
+    const coincideBusqueda =
+      prod.nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
+      prod.categoria.toLowerCase().includes(busqueda.toLowerCase());
+
+    const coincideCategoria = categoriaFiltro === 'todas' || categoriaFiltro === '' ? true : prod.categoria === categoriaFiltro;
+    const coincidePrecioMin = precioMin ? prod.precio >= parseFloat(precioMin) : true;
+    const coincidePrecioMax = precioMax ? prod.precio <= parseFloat(precioMax) : true;
+    const coincideStock = stockBajo ? prod.stock <= 10 : true;
+
+    return coincideBusqueda && coincideCategoria && coincidePrecioMin && coincidePrecioMax && coincideStock;
+  });
 
   return (
     <div className="p-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
         <h2 className="text-3xl font-bold text-gray-800">Productos</h2>
-        <div className="flex gap-4 w-full md:w-auto">
-          <Input
-            placeholder="Buscar producto..."
-            value={busqueda}
-            onChange={(e) => setBusqueda(e.target.value)}
-            className="w-full md:w-64"
-          />
-          <Button onClick={abrirModalAgregar} className="flex gap-2 whitespace-nowrap">
-            <Plus size={18} /> Agregar producto
-          </Button>
-        </div>
+        <Button onClick={abrirModalAgregar} className="flex gap-2 whitespace-nowrap">
+          <Plus size={18} /> Agregar producto
+        </Button>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <Input
+          placeholder="Buscar por nombre o categoría"
+          value={busqueda}
+          onChange={(e) => setBusqueda(e.target.value)}
+        />
+        <Select onValueChange={setCategoriaFiltro} value={categoriaFiltro}>
+          <SelectTrigger>
+            <SelectValue placeholder="Filtrar por categoría" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="todas">Todas</SelectItem>
+            <SelectItem value="Maquillaje">Maquillaje</SelectItem>
+            <SelectItem value="Cuidado Facial">Cuidado Facial</SelectItem>
+            <SelectItem value="Uñas">Uñas</SelectItem>
+          </SelectContent>
+        </Select>
+        <Input
+          type="number"
+          placeholder="Precio mínimo"
+          value={precioMin}
+          onChange={(e) => setPrecioMin(e.target.value)}
+        />
+        <Input
+          type="number"
+          placeholder="Precio máximo"
+          value={precioMax}
+          onChange={(e) => setPrecioMax(e.target.value)}
+        />
+      </div>
+
+      <div className="flex items-center mb-4 gap-2">
+        <input type="checkbox" id="stockBajo" checked={stockBajo} onChange={() => setStockBajo(!stockBajo)} />
+        <label htmlFor="stockBajo" className="text-sm text-gray-700">Mostrar solo productos con stock bajo (≤ 10)</label>
       </div>
 
       <div className="overflow-x-auto rounded-xl shadow">
