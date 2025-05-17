@@ -11,8 +11,7 @@ export default function Sidebar() {
         <nav className="space-y-4">
           <SidebarLink href="/" icon={<Home size={18} />} label="Inicio" />
           <SidebarLink href="/productos" icon={<Package size={18} />} label="Productos" />
-          <SidebarLink href="/entradas" icon={<Download size={18} />} label="Entradas" />
-          <SidebarLink href="/salidas" icon={<Upload size={18} />} label="Salidas" />
+          <SidebarLink href="/movimientos" icon={<Download size={18} />} label="Entradas" />
         </nav>
       </div>
       <div className="p-6 text-sm text-gray-400">

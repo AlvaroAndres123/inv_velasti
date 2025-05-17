@@ -48,6 +48,9 @@ export default function MovimientosPage() {
     },
   ]);
   const [modalAbierto, setModalAbierto] = useState(false);
+  const [filtroTexto, setFiltroTexto] = useState('');
+  const [filtroTipo, setFiltroTipo] = useState('todos');
+  const [filtroFecha, setFiltroFecha] = useState('');
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -70,6 +73,15 @@ export default function MovimientosPage() {
     setModalAbierto(false);
   };
 
+  const movimientosFiltrados = movimientos.filter((mov) => {
+    const coincideTexto =
+      mov.producto.toLowerCase().includes(filtroTexto.toLowerCase()) ||
+      mov.motivo.toLowerCase().includes(filtroTexto.toLowerCase());
+    const coincideTipo = filtroTipo === 'todos' ? true : mov.tipo === filtroTipo;
+    const coincideFecha = filtroFecha ? mov.fecha === filtroFecha : true;
+    return coincideTexto && coincideTipo && coincideFecha;
+  });
+
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
@@ -77,6 +89,59 @@ export default function MovimientosPage() {
         <Button onClick={() => setModalAbierto(true)} className="flex gap-2">
           <Plus size={18} /> Nuevo movimiento
         </Button>
+      </div>
+
+      {/* Filtros */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6 max-w-5xl">
+        <Input
+          placeholder="Buscar por producto o motivo"
+          value={filtroTexto}
+          onChange={(e) => setFiltroTexto(e.target.value)}
+        />
+        <Select value={filtroTipo} onValueChange={setFiltroTipo}>
+          <SelectTrigger>
+            <SelectValue placeholder="Filtrar por tipo" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="todos">Todos</SelectItem>
+            <SelectItem value="entrada">Entrada</SelectItem>
+            <SelectItem value="salida">Salida</SelectItem>
+          </SelectContent>
+        </Select>
+        <Input
+          type="date"
+          value={filtroFecha}
+          onChange={(e) => setFiltroFecha(e.target.value)}
+          className="w-full"
+        />
+     <Button
+          variant="outline"
+          onClick={() => {
+            setFiltroTexto('');
+            setFiltroTipo('todos');
+            setFiltroFecha('');
+          }}
+        >
+          Limpiar filtros
+        </Button>
+        <Button
+            variant="default"
+            onClick={() => {
+              const encabezados = ['Fecha', 'Tipo', 'Producto', 'Cantidad', 'Motivo'];
+              const filas = movimientosFiltrados.map(m => [m.fecha, m.tipo, m.producto, m.cantidad.toString(), m.motivo]);
+              const csvContent = [encabezados, ...filas]
+                .map(e => e.map(val => `"${val}"`).join(','))
+                .join('\n');
+              const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+              const url = URL.createObjectURL(blob);
+              const link = document.createElement('a');
+              link.setAttribute('href', url);
+              link.setAttribute('download', 'movimientos.csv');
+              link.click();
+            }}
+          >
+            Exportar a Excel
+          </Button>
       </div>
 
       {/* Historial */}
@@ -93,7 +158,7 @@ export default function MovimientosPage() {
             </tr>
           </thead>
           <tbody>
-            {movimientos.map((mov) => (
+            {movimientosFiltrados.map((mov) => (
               <tr key={mov.id} className="border-t hover:bg-gray-50">
                 <td className="px-6 py-4">{mov.fecha}</td>
                 <td className={`px-6 py-4 font-semibold ${mov.tipo === 'entrada' ? 'text-green-600' : 'text-red-600'}`}>

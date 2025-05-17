@@ -31,6 +31,15 @@ export default function Home() {
     { nombre: 'Delineador Líquido', ventas: 120 },
   ];
 
+  const resumenMovimientos = [
+    { mes: 'Ene', entradas: 120, salidas: 80 },
+    { mes: 'Feb', entradas: 150, salidas: 100 },
+    { mes: 'Mar', entradas: 170, salidas: 130 },
+    { mes: 'Abr', entradas: 200, salidas: 160 },
+    { mes: 'May', entradas: 220, salidas: 190 },
+    { mes: 'Jun', entradas: 180, salidas: 150 },
+  ];
+
   const colores = ['#3b82f6', '#10b981', '#f97316', '#ef4444', '#8b5cf6'];
 
   return (
@@ -103,6 +112,22 @@ export default function Home() {
             </Pie>
             <Legend />
           </PieChart>
+        </ResponsiveContainer>
+      </div>
+
+       {/* Gráfico de barras - Entradas vs Salidas */}
+      <h3 className="text-xl font-semibold mb-4">Entradas vs Salidas por Mes</h3>
+      <div className="bg-white p-4 rounded-xl shadow-md w-full h-[300px] mb-10">
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={resumenMovimientos}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis dataKey="mes" />
+            <YAxis />
+            <Tooltip />
+            <Legend />
+            <Bar dataKey="entradas" fill="#10b981" name="Entradas" />
+            <Bar dataKey="salidas" fill="#ef4444" name="Salidas" />
+          </BarChart>
         </ResponsiveContainer>
       </div>
     </main>
