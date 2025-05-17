@@ -12,8 +12,23 @@ import {
   Legend,
   PieChart,
   Pie,
-  Cell
+  Cell,
+  LabelList
 } from 'recharts';
+import { TrendingUp } from 'lucide-react';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import {
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+} from '@/components/ui/chart';
 
 const meses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio'];
 const años = ['2023', '2024', '2025'];
@@ -43,18 +58,17 @@ export default function Home() {
   ];
 
   const productosMasVendidos = [
-    { nombre: 'Labial Mate', ventas: 450 },
-    { nombre: 'Base HD', ventas: 320 },
-    { nombre: 'Serum Facial', ventas: 210 },
-    { nombre: 'Rubor Compacto', ventas: 160 },
-    { nombre: 'Delineador Líquido', ventas: 120 },
+    { name: 'Labial Mate', visitors: 450 },
+    { name: 'Base HD', visitors: 320 },
+    { name: 'Serum Facial', visitors: 210 },
+    { name: 'Rubor Compacto', visitors: 160 },
+    { name: 'Delineador Líquido', visitors: 120 },
   ];
 
   return (
     <main className="p-4 sm:p-6 md:p-8 max-w-screen-xl mx-auto">
       <h2 className="text-2xl md:text-3xl font-bold mb-6 text-center md:text-left">Dashboard</h2>
 
-      {/* Filtros */}
       <div className="flex flex-col sm:flex-row gap-4 mb-8 justify-center md:justify-start">
         <select
           value={mesSeleccionado}
@@ -76,7 +90,6 @@ export default function Home() {
         </select>
       </div>
 
-      {/* Tarjetas informativas */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 mb-10">
         <InfoCard title="Total de productos" value="120" color="text-blue-600" />
         <InfoCard title="Stock bajo" value="5" color="text-red-500" />
@@ -86,7 +99,6 @@ export default function Home() {
         <InfoCard title="Productos más vendidos" value="Labial Mate, Serum Facial, Base HD" color="text-orange-500 text-sm" />
       </div>
 
-      {/* Gráfico de ventas mensuales */}
       <h3 className="text-lg md:text-xl font-semibold mb-4 text-center md:text-left">Ventas por Mes</h3>
       <div className="bg-white p-4 rounded-xl shadow-md w-full h-[250px] sm:h-[300px] mb-10">
         <ResponsiveContainer width="100%" height="100%">
@@ -100,30 +112,49 @@ export default function Home() {
         </ResponsiveContainer>
       </div>
 
-      {/* Gráfico de pastel */}
       <h3 className="text-lg md:text-xl font-semibold mb-4 text-center md:text-left">Top 5 productos más vendidos</h3>
-      <div className="bg-white p-4 rounded-xl shadow-md w-full h-[300px] mb-10">
-        <ResponsiveContainer width="100%" height="100%">
-          <PieChart>
-            <Pie
-              data={productosMasVendidos}
-              dataKey="ventas"
-              nameKey="nombre"
-              cx="50%"
-              cy="50%"
-              outerRadius={100}
-              label
-            >
-              {productosMasVendidos.map((_, index) => (
-                <Cell key={`cell-${index}`} fill={colores[index % colores.length]} />
-              ))}
-            </Pie>
-            <Legend />
-          </PieChart>
-        </ResponsiveContainer>
-      </div>
+      <Card className="mb-10">
+        <CardHeader className="items-center pb-0">
+          <CardTitle>Distribución por producto</CardTitle>
+          <CardDescription>Últimos 6 meses</CardDescription>
+        </CardHeader>
+        <CardContent className="pb-0">
+          <ChartContainer
+            config={{}}
+            className="mx-auto aspect-square max-h-[350px] md:max-h-[300px]"
+          >
+            <PieChart>
+              <ChartTooltip cursor={false} content={<ChartTooltipContent hideLabel />} />
+              <Pie
+                data={productosMasVendidos}
+                dataKey="visitors"
+                nameKey="name"
+                cx="50%"
+                cy="50%"
+                outerRadius={110}
+                fill="#8884d8"
+              >
+                <LabelList
+                  dataKey="name"
+                  position="inside"
+                />
+                {productosMasVendidos.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={colores[index % colores.length]} />
+                ))}
+              </Pie>
+            </PieChart>
+          </ChartContainer>
+        </CardContent>
+        <CardFooter className="flex-col gap-2 text-sm">
+          <div className="flex items-center gap-2 font-medium leading-none">
+            En aumento un 5.2% este mes <TrendingUp className="h-4 w-4" />
+          </div>
+          <div className="leading-none text-muted-foreground">
+            Mostrando productos más vendidos en los últimos 6 meses
+          </div>
+        </CardFooter>
+      </Card>
 
-      {/* Gráfico de entradas vs salidas */}
       <h3 className="text-lg md:text-xl font-semibold mb-4 text-center md:text-left">Entradas vs Salidas por Mes</h3>
       <div className="bg-white p-4 rounded-xl shadow-md w-full h-[250px] sm:h-[300px] mb-10">
         <ResponsiveContainer width="100%" height="100%">
