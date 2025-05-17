@@ -2,18 +2,37 @@
 
 import { useState } from 'react';
 import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer, PieChart, Pie, Cell, Legend
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  Legend,
+  PieChart,
+  Pie,
+  Cell
 } from 'recharts';
 
 const meses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio'];
 const años = ['2023', '2024', '2025'];
 
+const colores = ['#3b82f6', '#10b981', '#f97316', '#ef4444', '#8b5cf6'];
+
 export default function Home() {
   const [mesSeleccionado, setMesSeleccionado] = useState('Mayo');
   const [añoSeleccionado, setAñoSeleccionado] = useState('2025');
 
-  // Datos filtrados (simulados)
+  const resumenMovimientos = [
+    { mes: 'Ene', entradas: 120, salidas: 80 },
+    { mes: 'Feb', entradas: 150, salidas: 100 },
+    { mes: 'Mar', entradas: 170, salidas: 130 },
+    { mes: 'Abr', entradas: 200, salidas: 160 },
+    { mes: 'May', entradas: 220, salidas: 190 },
+    { mes: 'Jun', entradas: 180, salidas: 150 },
+  ];
+
   const ventasMensuales = [
     { mes: 'Ene', ventas: 2400 },
     { mes: 'Feb', ventas: 1398 },
@@ -31,27 +50,16 @@ export default function Home() {
     { nombre: 'Delineador Líquido', ventas: 120 },
   ];
 
-  const resumenMovimientos = [
-    { mes: 'Ene', entradas: 120, salidas: 80 },
-    { mes: 'Feb', entradas: 150, salidas: 100 },
-    { mes: 'Mar', entradas: 170, salidas: 130 },
-    { mes: 'Abr', entradas: 200, salidas: 160 },
-    { mes: 'May', entradas: 220, salidas: 190 },
-    { mes: 'Jun', entradas: 180, salidas: 150 },
-  ];
-
-  const colores = ['#3b82f6', '#10b981', '#f97316', '#ef4444', '#8b5cf6'];
-
   return (
-    <main className="p-6">
-      <h2 className="text-2xl font-bold mb-6">Dashboard</h2>
+    <main className="p-4 sm:p-6 md:p-8 max-w-screen-xl mx-auto">
+      <h2 className="text-2xl md:text-3xl font-bold mb-6 text-center md:text-left">Dashboard</h2>
 
       {/* Filtros */}
-      <div className="flex gap-4 mb-8">
+      <div className="flex flex-col sm:flex-row gap-4 mb-8 justify-center md:justify-start">
         <select
           value={mesSeleccionado}
           onChange={(e) => setMesSeleccionado(e.target.value)}
-          className="border rounded px-3 py-2"
+          className="border rounded px-3 py-2 text-sm md:text-base"
         >
           {meses.map((mes) => (
             <option key={mes} value={mes}>{mes}</option>
@@ -60,7 +68,7 @@ export default function Home() {
         <select
           value={añoSeleccionado}
           onChange={(e) => setAñoSeleccionado(e.target.value)}
-          className="border rounded px-3 py-2"
+          className="border rounded px-3 py-2 text-sm md:text-base"
         >
           {años.map((año) => (
             <option key={año} value={año}>{año}</option>
@@ -68,19 +76,19 @@ export default function Home() {
         </select>
       </div>
 
-      {/* Tarjetas */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-10">
-        <Card title="Total de productos" value="120" color="text-blue-600" />
-        <Card title="Stock bajo" value="5" color="text-red-500" />
-        <Card title="Última entrada" value="10/05/2025" color="text-green-600" />
-        <Card title="Ventas del día" value="C$ 2,340" color="text-purple-600" />
-        <Card title="Ingresos del mes" value="C$ 18,200" color="text-emerald-600" />
-        <Card title="Productos más vendidos" value="Labial Mate, Serum Facial, Base HD" color="text-orange-500 text-base" />
+      {/* Tarjetas informativas */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 mb-10">
+        <InfoCard title="Total de productos" value="120" color="text-blue-600" />
+        <InfoCard title="Stock bajo" value="5" color="text-red-500" />
+        <InfoCard title="Última entrada" value="10/05/2025" color="text-green-600" />
+        <InfoCard title="Ventas del día" value="C$ 2,340" color="text-purple-600" />
+        <InfoCard title="Ingresos del mes" value="C$ 18,200" color="text-emerald-600" />
+        <InfoCard title="Productos más vendidos" value="Labial Mate, Serum Facial, Base HD" color="text-orange-500 text-sm" />
       </div>
 
-      {/* Gráfica de barras */}
-      <h3 className="text-xl font-semibold mb-4">Ventas por Mes</h3>
-      <div className="bg-white p-4 rounded-xl shadow-md w-full h-[300px]">
+      {/* Gráfico de ventas mensuales */}
+      <h3 className="text-lg md:text-xl font-semibold mb-4 text-center md:text-left">Ventas por Mes</h3>
+      <div className="bg-white p-4 rounded-xl shadow-md w-full h-[250px] sm:h-[300px] mb-10">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={ventasMensuales}>
             <CartesianGrid strokeDasharray="3 3" />
@@ -92,9 +100,9 @@ export default function Home() {
         </ResponsiveContainer>
       </div>
 
-      {/* Gráfica de pastel */}
-      <h3 className="text-xl font-semibold mb-4 mt-10">Top 5 productos más vendidos</h3>
-      <div className="bg-white p-4 rounded-xl shadow-md w-full h-[300px]">
+      {/* Gráfico de pastel */}
+      <h3 className="text-lg md:text-xl font-semibold mb-4 text-center md:text-left">Top 5 productos más vendidos</h3>
+      <div className="bg-white p-4 rounded-xl shadow-md w-full h-[300px] mb-10">
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
             <Pie
@@ -115,9 +123,9 @@ export default function Home() {
         </ResponsiveContainer>
       </div>
 
-       {/* Gráfico de barras - Entradas vs Salidas */}
-      <h3 className="text-xl font-semibold mb-4">Entradas vs Salidas por Mes</h3>
-      <div className="bg-white p-4 rounded-xl shadow-md w-full h-[300px] mb-10">
+      {/* Gráfico de entradas vs salidas */}
+      <h3 className="text-lg md:text-xl font-semibold mb-4 text-center md:text-left">Entradas vs Salidas por Mes</h3>
+      <div className="bg-white p-4 rounded-xl shadow-md w-full h-[250px] sm:h-[300px] mb-10">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={resumenMovimientos}>
             <CartesianGrid strokeDasharray="3 3" />
@@ -134,11 +142,11 @@ export default function Home() {
   );
 }
 
-function Card({ title, value, color }: { title: string; value: string; color: string }) {
+function InfoCard({ title, value, color }: { title: string; value: string; color: string }) {
   return (
-    <div className="bg-white shadow-md rounded-xl p-6 hover:shadow-lg transition">
-      <h3 className="text-lg font-semibold mb-2">{title}</h3>
-      <p className={`text-3xl font-bold ${color}`}>{value}</p>
+    <div className="bg-white shadow-md rounded-xl p-4 md:p-6 hover:shadow-lg transition min-w-0">
+      <h3 className="text-sm md:text-base font-semibold mb-2 text-gray-600 break-words whitespace-normal">{title}</h3>
+      <p className={`text-2xl md:text-3xl font-bold ${color} break-words whitespace-normal`}>{value}</p>
     </div>
   );
 }
