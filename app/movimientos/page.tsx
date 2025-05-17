@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import { useState } from 'react';
 import { Input } from '@/components/ui/input';
@@ -83,16 +83,16 @@ export default function MovimientosPage() {
   });
 
   return (
-    <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
+    <div className="p-4 sm:p-6">
+      <div className="flex flex-col md:flex-row justify-between md:items-center gap-4 mb-6">
         <h2 className="text-3xl font-bold text-gray-800">Movimientos de inventario</h2>
-        <Button onClick={() => setModalAbierto(true)} className="flex gap-2">
+        <Button onClick={() => setModalAbierto(true)} className="flex gap-2 w-full sm:w-auto">
           <Plus size={18} /> Nuevo movimiento
         </Button>
       </div>
 
       {/* Filtros */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6 max-w-5xl">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <Input
           placeholder="Buscar por producto o motivo"
           value={filtroTexto}
@@ -112,20 +112,22 @@ export default function MovimientosPage() {
           type="date"
           value={filtroFecha}
           onChange={(e) => setFiltroFecha(e.target.value)}
-          className="w-full"
         />
-     <Button
-          variant="outline"
-          onClick={() => {
-            setFiltroTexto('');
-            setFiltroTipo('todos');
-            setFiltroFecha('');
-          }}
-        >
-          Limpiar filtros
-        </Button>
-        <Button
+        <div className="flex flex-col sm:flex-row gap-2">
+          <Button
+            variant="outline"
+            className="w-full sm:w-auto"
+            onClick={() => {
+              setFiltroTexto('');
+              setFiltroTipo('todos');
+              setFiltroFecha('');
+            }}
+          >
+            Limpiar filtros
+          </Button>
+          <Button
             variant="default"
+            className="w-full sm:w-auto"
             onClick={() => {
               const encabezados = ['Fecha', 'Tipo', 'Producto', 'Cantidad', 'Motivo'];
               const filas = movimientosFiltrados.map(m => [m.fecha, m.tipo, m.producto, m.cantidad.toString(), m.motivo]);
@@ -142,6 +144,7 @@ export default function MovimientosPage() {
           >
             Exportar a Excel
           </Button>
+        </div>
       </div>
 
       {/* Historial */}
@@ -150,23 +153,23 @@ export default function MovimientosPage() {
         <table className="min-w-full text-sm text-left text-gray-700 bg-white">
           <thead className="bg-gray-100 text-xs uppercase text-gray-500">
             <tr>
-              <th className="px-6 py-4">Fecha</th>
-              <th className="px-6 py-4">Tipo</th>
-              <th className="px-6 py-4">Producto</th>
-              <th className="px-6 py-4">Cantidad</th>
-              <th className="px-6 py-4">Motivo</th>
+              <th className="px-4 py-3 sm:px-6 sm:py-4">Fecha</th>
+              <th className="px-4 py-3 sm:px-6 sm:py-4">Tipo</th>
+              <th className="px-4 py-3 sm:px-6 sm:py-4">Producto</th>
+              <th className="px-4 py-3 sm:px-6 sm:py-4">Cantidad</th>
+              <th className="px-4 py-3 sm:px-6 sm:py-4">Motivo</th>
             </tr>
           </thead>
           <tbody>
             {movimientosFiltrados.map((mov) => (
               <tr key={mov.id} className="border-t hover:bg-gray-50">
-                <td className="px-6 py-4">{mov.fecha}</td>
-                <td className={`px-6 py-4 font-semibold ${mov.tipo === 'entrada' ? 'text-green-600' : 'text-red-600'}`}>
+                <td className="px-4 py-3 sm:px-6 sm:py-4">{mov.fecha}</td>
+                <td className={`px-4 py-3 sm:px-6 sm:py-4 font-semibold ${mov.tipo === 'entrada' ? 'text-green-600' : 'text-red-600'}`}>
                   {mov.tipo.charAt(0).toUpperCase() + mov.tipo.slice(1)}
                 </td>
-                <td className="px-6 py-4">{mov.producto}</td>
-                <td className="px-6 py-4">{mov.cantidad}</td>
-                <td className="px-6 py-4">{mov.motivo}</td>
+                <td className="px-4 py-3 sm:px-6 sm:py-4">{mov.producto}</td>
+                <td className="px-4 py-3 sm:px-6 sm:py-4">{mov.cantidad}</td>
+                <td className="px-4 py-3 sm:px-6 sm:py-4">{mov.motivo}</td>
               </tr>
             ))}
           </tbody>

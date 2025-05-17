@@ -1,18 +1,24 @@
 'use client';
 
 import { usePathname } from 'next/navigation';
-import { Home, Package, Download, Menu } from 'lucide-react';
+import { Home, Package, Download, Menu, ArrowLeftRight, Truck } from 'lucide-react';
 import { useState } from 'react';
+
+
+
+
+
 
 export default function Sidebar() {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
 
-  const links = [
-    { href: '/', label: 'Inicio', icon: <Home size={20} /> },
-    { href: '/productos', label: 'Productos', icon: <Package size={20} /> },
-    { href: '/movimientos', label: 'Movimientos', icon: <Download size={20} /> },
-  ];
+const links = [
+  { href: '/', label: 'Inicio', icon: <Home size={20} /> },
+  { href: '/productos', label: 'Productos', icon: <Package size={20} /> },
+  { href: '/movimientos', label: 'Movimientos', icon: <ArrowLeftRight size={20} /> },
+  { href: '/proveedores', label: 'Proveedores', icon: <Truck size={20} /> },
+];
 
   return (
     <>

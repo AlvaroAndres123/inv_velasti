@@ -16,6 +16,7 @@ import {
   Label
 } from 'recharts';
 import { TrendingUp } from 'lucide-react';
+import { motion } from 'framer-motion';
 import {
   Card,
   CardContent,
@@ -38,6 +39,8 @@ const colores = ['#3b82f6', '#10b981', '#f97316', '#ef4444', '#8b5cf6'];
 export default function Home() {
   const [mesSeleccionado, setMesSeleccionado] = useState('Mayo');
   const [añoSeleccionado, setAñoSeleccionado] = useState('2025');
+  const [fechaInicio, setFechaInicio] = useState('');
+  const [fechaFin, setFechaFin] = useState('');
 
   const resumenMovimientos = [
     { mes: 'Ene', entradas: 120, salidas: 80 },
@@ -69,7 +72,12 @@ export default function Home() {
     <main className="p-4 sm:p-6 md:p-8 max-w-screen-xl mx-auto">
       <h2 className="text-2xl md:text-3xl font-bold mb-6 text-center md:text-left">Dashboard</h2>
 
-      <div className="flex flex-col sm:flex-row gap-4 mb-8 justify-center md:justify-start">
+    <motion.div
+        className="flex flex-col sm:flex-row gap-4 mb-8 justify-center md:justify-start"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.2 }}
+      >
         <select
           value={mesSeleccionado}
           onChange={(e) => setMesSeleccionado(e.target.value)}
@@ -88,7 +96,20 @@ export default function Home() {
             <option key={año} value={año}>{año}</option>
           ))}
         </select>
-      </div>
+        <input
+          type="date"
+          value={fechaInicio}
+          onChange={(e) => setFechaInicio(e.target.value)}
+          className="border rounded px-3 py-2 text-sm md:text-base"
+        />
+        <input
+          type="date"
+          value={fechaFin}
+          onChange={(e) => setFechaFin(e.target.value)}
+          className="border rounded px-3 py-2 text-sm md:text-base"
+        />
+      </motion.div>
+
 
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 mb-10">
         <InfoCard title="Total de productos" value="120" color="text-blue-600" />
@@ -189,9 +210,15 @@ export default function Home() {
 
 function InfoCard({ title, value, color }: { title: string; value: string; color: string }) {
   return (
-    <div className="bg-white shadow-md rounded-xl p-4 md:p-6 hover:shadow-lg transition min-w-0">
+    <motion.div
+      className="bg-white shadow-md rounded-xl p-4 md:p-6 hover:shadow-lg transition min-w-0"
+      whileHover={{ scale: 1.02 }}
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4 }}
+    >
       <h3 className="text-sm md:text-base font-semibold mb-2 text-gray-600 break-words whitespace-normal">{title}</h3>
       <p className={`text-2xl md:text-3xl font-bold ${color} break-words whitespace-normal`}>{value}</p>
-    </div>
+    </motion.div>
   );
 }
