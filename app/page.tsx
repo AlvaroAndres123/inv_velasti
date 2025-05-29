@@ -1,5 +1,8 @@
 "use client";
 
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+
 import { useState } from 'react';
 import {
   BarChart,
@@ -41,6 +44,7 @@ export default function Home() {
   const [añoSeleccionado, setAñoSeleccionado] = useState('2025');
   const [fechaInicio, setFechaInicio] = useState('');
   const [fechaFin, setFechaFin] = useState('');
+  
 
   const resumenMovimientos = [
     { mes: 'Ene', entradas: 120, salidas: 80 },
