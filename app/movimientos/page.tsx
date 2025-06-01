@@ -8,6 +8,8 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Plus } from 'lucide-react';
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 
 interface Movimiento {
   id: number;
@@ -51,6 +53,14 @@ export default function MovimientosPage() {
   const [filtroTexto, setFiltroTexto] = useState('');
   const [filtroTipo, setFiltroTipo] = useState('todos');
   const [filtroFecha, setFiltroFecha] = useState('');
+    const router = useRouter();
+
+  useEffect(() => {
+    const user = localStorage.getItem('usuario');
+    if (!user) {
+      router.replace('/login');
+    }
+  }, [router]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });

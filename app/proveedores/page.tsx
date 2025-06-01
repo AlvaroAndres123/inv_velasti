@@ -6,6 +6,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Plus, Pencil, Trash2 } from 'lucide-react';
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 
 interface Proveedor {
   id: number;
@@ -40,6 +42,14 @@ export default function ProveedoresPage() {
   const [modoEdicion, setModoEdicion] = useState(false);
   const [proveedorActual, setProveedorActual] = useState<Proveedor | null>(null);
   const [busqueda, setBusqueda] = useState('');
+  const router = useRouter();
+
+  useEffect(() => {
+    const user = localStorage.getItem('usuario');
+    if (!user) {
+      router.replace('/login');
+    }
+  }, [router]);
 
   const abrirModalAgregar = () => {
     setProveedorActual(null);

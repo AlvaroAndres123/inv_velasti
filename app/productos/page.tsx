@@ -8,6 +8,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus, Pencil, Trash2 } from 'lucide-react';
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 
 interface Producto {
   id: number;
@@ -59,6 +61,14 @@ export default function ProductosPage() {
   const [precioMin, setPrecioMin] = useState('');
   const [precioMax, setPrecioMax] = useState('');
   const [stockBajo, setStockBajo] = useState(false);
+    const router = useRouter();
+
+  useEffect(() => {
+    const user = localStorage.getItem('usuario');
+    if (!user) {
+      router.replace('/login');
+    }
+  }, [router]);
 
   const abrirModalAgregar = () => {
     setProductoActual(null);

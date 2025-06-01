@@ -7,26 +7,29 @@ import { Button } from '@/components/ui/button';
 
 export default function LoginPage() {
   const router = useRouter();
-  const [correo, setCorreo] = useState('');
+  const [usuario, setUsuario] = useState('');
   const [clave, setClave] = useState('');
   const [error, setError] = useState('');
+  
 
   useEffect(() => {
     const user = localStorage.getItem('usuario');
-    if (user) {
-      router.replace('/productos'); // Ya está logueado
-    }
+    if (user) router.replace('/productos');
   }, [router]);
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
 
     // Usuario de prueba
-    if (correo === 'admin@demo.com' && clave === '1234') {
-      localStorage.setItem('usuario', JSON.stringify({ correo }));
-      router.push('/productos');
+    if (usuario === 'jesua123' && clave === '1234') {
+      const usuarioDemo = {
+        usuario,
+        nombre: 'Jesua Casco',
+      };
+      localStorage.setItem('usuario', JSON.stringify(usuarioDemo));
+      router.push('/');
     } else {
-      setError('Correo o contraseña incorrectos');
+      setError('Usuario o contraseña incorrectos');
     }
   };
 
@@ -35,10 +38,10 @@ export default function LoginPage() {
       <form onSubmit={handleLogin} className="bg-white p-6 rounded shadow w-full max-w-sm space-y-4">
         <h2 className="text-2xl font-bold text-center">Iniciar sesión</h2>
         <Input
-          type="email"
-          placeholder="Correo"
-          value={correo}
-          onChange={(e) => setCorreo(e.target.value)}
+          type="text"
+          placeholder="Usuario"
+          value={usuario}
+          onChange={(e) => setUsuario(e.target.value)}
           required
         />
         <Input

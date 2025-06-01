@@ -44,7 +44,21 @@ export default function Home() {
   const [añoSeleccionado, setAñoSeleccionado] = useState('2025');
   const [fechaInicio, setFechaInicio] = useState('');
   const [fechaFin, setFechaFin] = useState('');
-  
+   const router = useRouter();
+  const [cargando, setCargando] = useState(true);
+
+  useEffect(() => {
+    const user = localStorage.getItem('usuario');
+    if (!user) {
+      router.replace('/login');
+    } else {
+      setCargando(false);
+    }
+  }, [router]);
+
+  if (cargando) return null;
+
+
 
   const resumenMovimientos = [
     { mes: 'Ene', entradas: 120, salidas: 80 },
