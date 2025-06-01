@@ -2,13 +2,14 @@
 
 import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
-import { Home, Package, ArrowLeftRight, Truck, LogOut, UserCircle } from 'lucide-react';
+import { Home, Package, ArrowLeftRight, Truck, LogOut, UserCircle, Settings } from 'lucide-react';
 
 const links = [
   { href: '/', label: 'Inicio', icon: <Home size={20} /> },
   { href: '/productos', label: 'Productos', icon: <Package size={20} /> },
   { href: '/movimientos', label: 'Movimientos', icon: <ArrowLeftRight size={20} /> },
   { href: '/proveedores', label: 'Proveedores', icon: <Truck size={20} /> },
+  { href: '/perfil', label: 'Configuración', icon: <Settings size={20} /> }, // 👈 nuevo ítem
 ];
 
 export default function Sidebar() {
