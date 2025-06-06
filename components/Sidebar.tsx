@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { usePathname } from 'next/navigation';
 import {
   Home,
   Package,
@@ -10,7 +9,9 @@ import {
   LogOut,
   UserCircle,
   Settings,
+  X,
 } from 'lucide-react';
+import { usePathname } from 'next/navigation';
 
 const links = [
   { href: '/', label: 'Inicio', icon: <Home size={20} /> },
@@ -20,10 +21,15 @@ const links = [
   { href: '/perfil', label: 'Configuración', icon: <Settings size={20} /> },
 ];
 
-export default function Sidebar() {
+export default function Sidebar({
+  abierto,
+  setAbierto,
+}: {
+  abierto: boolean;
+  setAbierto: (value: boolean) => void;
+}) {
   const pathname = usePathname();
   const [usuario, setUsuario] = useState<{ nombre: string } | null>(null);
-  const [abierto, setAbierto] = useState(false);
 
   useEffect(() => {
     const userData = localStorage.getItem('usuario');
@@ -43,39 +49,53 @@ export default function Sidebar() {
 
   return (
     <>
-      {/* Botón Hamburguesa para móvil */}
-      <button
-        onClick={() => setAbierto(!abierto)}
-        className="md:hidden fixed top-4 left-4 z-50 bg-black p-2 rounded text-white"
-      >
-        ☰
-      </button>
+      {/* Overlay en móvil */}
+      {abierto && (
+        <div
+          onClick={() => setAbierto(false)}
+          className="fixed inset-0 bg-black/50 z-30 backdrop-blur-sm md:hidden transition-opacity"
+        />
+      )}
 
       {/* Sidebar */}
       <aside
-        className={`fixed top-0 left-0 h-full w-64 bg-black text-white flex flex-col justify-between z-40 transform transition-transform duration-300 ${
+        className={`fixed top-0 left-0 h-full w-64 bg-black text-white flex flex-col justify-start z-40 transform transition-transform duration-300 ${
           abierto ? 'translate-x-0' : '-translate-x-full'
         } md:translate-x-0`}
       >
-        <div className="p-6">
-          <h2 className="text-3xl font-bold text-blue-400 mb-10" style={{ fontFamily: 'AdamBold' }}>
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-white/10">
+          <h2
+            className="text-2xl font-bold text-blue-400"
+            style={{ fontFamily: 'AdamBold' }}
+          >
             AlmaSoft
           </h2>
-          <nav className="space-y-2">
-            {links.map((link) => (
-              <SidebarLink
-                key={link.href}
-                href={link.href}
-                icon={link.icon}
-                label={link.label}
-                active={pathname === link.href}
-              />
-            ))}
-          </nav>
+          {abierto && (
+            <button
+              onClick={() => setAbierto(false)}
+              className="md:hidden text-white p-2 rounded hover:bg-white/10 transition"
+            >
+              <X size={24} />
+            </button>
+          )}
         </div>
 
-        {/* Footer con datos del usuario */}
-        <div className="p-6 text-sm border-t border-white/10">
+        {/* Navegación arriba */}
+        <nav className="space-y-2 px-6 mt-2">
+          {links.map((link) => (
+            <SidebarLink
+              key={link.href}
+              href={link.href}
+              icon={link.icon}
+              label={link.label}
+              active={pathname === link.href}
+            />
+          ))}
+        </nav>
+
+        {/* Footer usuario */}
+        <div className="mt-auto p-6 text-sm border-t border-white/10">
           <div className="flex items-center gap-3 mb-2">
             <UserCircle size={20} />
             <span>{usuario?.nombre ?? 'Usuario'}</span>
@@ -107,7 +127,7 @@ function SidebarLink({
   return (
     <a
       href={href}
-      className={`flex items-center gap-3 px-4 py-2 rounded-lg transition-colors ${
+      className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
         active
           ? 'bg-blue-600 text-white font-semibold'
           : 'text-white hover:text-blue-300 hover:bg-white/10'
