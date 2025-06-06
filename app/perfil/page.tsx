@@ -26,7 +26,7 @@ export default function PerfilPage() {
     if (usuario) {
       const data = JSON.parse(usuario);
 
-      // Validar cambio de contraseña solo si el campo está lleno
+      // Validar cambio de contraseña
       if (contrasenaActual || nuevaContrasena || confirmarContrasena) {
         if (data.contrasena && data.contrasena !== contrasenaActual) {
           setError('La contraseña actual no es correcta');
@@ -36,6 +36,13 @@ export default function PerfilPage() {
           setError('Las nuevas contraseñas no coinciden');
           return;
         }
+
+        const fuerza = calcularFuerza(nuevaContrasena);
+        if (fuerza.label === 'Débil') {
+          setError('La nueva contraseña es demasiado débil');
+          return;
+        }
+
         data.contrasena = nuevaContrasena;
       }
 
@@ -55,7 +62,7 @@ export default function PerfilPage() {
       <div>
         <h1 className="text-3xl font-bold text-gray-800">Configuración del perfil</h1>
         <p className="text-gray-500 text-sm mt-1">
-          Actualiza tu información personal y tu contraseña de acceso.
+          Actualiza tu información personal y contraseña de acceso.
         </p>
       </div>
 
@@ -91,6 +98,9 @@ export default function PerfilPage() {
                 value={nuevaContrasena}
                 onChange={(e) => setNuevaContrasena(e.target.value)}
               />
+              {nuevaContrasena && (
+                <PasswordStrengthMeter password={nuevaContrasena} />
+              )}
             </div>
 
             <div>
@@ -115,4 +125,30 @@ export default function PerfilPage() {
       </form>
     </div>
   );
+}
+
+function PasswordStrengthMeter({ password }: { password: string }) {
+  const strength = calcularFuerza(password);
+
+  return (
+    <div className="mt-2">
+      <div className="h-2 rounded bg-gray-200 overflow-hidden">
+        <div className={`h-2 ${strength.color} ${strength.width} transition-all duration-300`} />
+      </div>
+      <p className="text-xs mt-1 text-gray-600">{`Fuerza: ${strength.label}`}</p>
+    </div>
+  );
+}
+
+function calcularFuerza(pass: string) {
+  let score = 0;
+  if (pass.length >= 8) score++;
+  if (/[A-Z]/.test(pass)) score++;
+  if (/[0-9]/.test(pass)) score++;
+  if (/[^A-Za-z0-9]/.test(pass)) score++;
+
+  if (score <= 1) return { label: 'Débil', color: 'bg-red-500', width: 'w-1/4' };
+  if (score === 2) return { label: 'Regular', color: 'bg-yellow-500', width: 'w-2/4' };
+  if (score === 3) return { label: 'Buena', color: 'bg-blue-500', width: 'w-3/4' };
+  return { label: 'Fuerte', color: 'bg-green-500', width: 'w-full' };
 }

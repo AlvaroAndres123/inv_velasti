@@ -2,19 +2,28 @@
 
 import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
-import { Home, Package, ArrowLeftRight, Truck, LogOut, UserCircle, Settings } from 'lucide-react';
+import {
+  Home,
+  Package,
+  ArrowLeftRight,
+  Truck,
+  LogOut,
+  UserCircle,
+  Settings,
+} from 'lucide-react';
 
 const links = [
   { href: '/', label: 'Inicio', icon: <Home size={20} /> },
   { href: '/productos', label: 'Productos', icon: <Package size={20} /> },
   { href: '/movimientos', label: 'Movimientos', icon: <ArrowLeftRight size={20} /> },
   { href: '/proveedores', label: 'Proveedores', icon: <Truck size={20} /> },
-  { href: '/perfil', label: 'Configuración', icon: <Settings size={20} /> }, // 👈 nuevo ítem
+  { href: '/perfil', label: 'Configuración', icon: <Settings size={20} /> },
 ];
 
 export default function Sidebar() {
   const pathname = usePathname();
   const [usuario, setUsuario] = useState<{ nombre: string } | null>(null);
+  const [abierto, setAbierto] = useState(false);
 
   useEffect(() => {
     const userData = localStorage.getItem('usuario');
@@ -33,37 +42,54 @@ export default function Sidebar() {
   };
 
   return (
-    <aside className="fixed top-0 left-0 h-full w-64 bg-black text-white flex flex-col justify-between z-40">
-      <div className="p-6">
-        <h2 className="text-3xl font-bold text-blue-400 mb-10">AlmaSoft</h2>
-        <nav className="space-y-2">
-          {links.map((link) => (
-            <SidebarLink
-              key={link.href}
-              href={link.href}
-              icon={link.icon}
-              label={link.label}
-              active={pathname === link.href}
-            />
-          ))}
-        </nav>
-      </div>
+    <>
+      {/* Botón Hamburguesa para móvil */}
+      <button
+        onClick={() => setAbierto(!abierto)}
+        className="md:hidden fixed top-4 left-4 z-50 bg-black p-2 rounded text-white"
+      >
+        ☰
+      </button>
 
-      {/* Footer con datos del usuario */}
-      <div className="p-6 text-sm border-t border-white/10">
-        <div className="flex items-center gap-3 mb-2">
-          <UserCircle size={20} />
-          <span>{usuario?.nombre ?? 'Usuario'}</span>
+      {/* Sidebar */}
+      <aside
+        className={`fixed top-0 left-0 h-full w-64 bg-black text-white flex flex-col justify-between z-40 transform transition-transform duration-300 ${
+          abierto ? 'translate-x-0' : '-translate-x-full'
+        } md:translate-x-0`}
+      >
+        <div className="p-6">
+          <h2 className="text-3xl font-bold text-blue-400 mb-10" style={{ fontFamily: 'AdamBold' }}>
+            AlmaSoft
+          </h2>
+          <nav className="space-y-2">
+            {links.map((link) => (
+              <SidebarLink
+                key={link.href}
+                href={link.href}
+                icon={link.icon}
+                label={link.label}
+                active={pathname === link.href}
+              />
+            ))}
+          </nav>
         </div>
-        <button
-          onClick={cerrarSesion}
-          className="flex items-center gap-2 text-gray-400 hover:text-white text-xs"
-        >
-          <LogOut size={14} />
-          Cerrar sesión
-        </button>
-      </div>
-    </aside>
+
+        {/* Footer con datos del usuario */}
+        <div className="p-6 text-sm border-t border-white/10">
+          <div className="flex items-center gap-3 mb-2">
+            <UserCircle size={20} />
+            <span>{usuario?.nombre ?? 'Usuario'}</span>
+          </div>
+          <button
+            onClick={cerrarSesion}
+            className="flex items-center gap-2 text-gray-400 hover:text-white text-xs"
+          >
+            <LogOut size={14} />
+            Cerrar sesión
+          </button>
+        </div>
+      </aside>
+    </>
   );
 }
 
