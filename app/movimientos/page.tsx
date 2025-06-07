@@ -21,7 +21,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Plus } from "lucide-react";
-import { useEffect } from "react";
+import { useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 
 interface Movimiento {
@@ -33,51 +33,96 @@ interface Movimiento {
   fecha: string;
 }
 
+interface Producto {
+  id: number;
+  nombre: string;
+  descripcion: string;
+  categoria: string;
+  proveedor: string;
+  valor: number;
+  stock: number;
+  imagen: string;
+}
+
 export default function MovimientosPage() {
   const [tipoMovimiento, setTipoMovimiento] = useState<"entrada" | "salida">(
     "entrada"
   );
-  const [form, setForm] = useState({ producto: "", cantidad: "", motivo: "" });
+  const [form, setForm] = useState({
+    producto: "",
+    cantidad: "",
+    motivo: "",
+    valor: "",
+  });
+
   const [movimientos, setMovimientos] = useState<Movimiento[]>([
     {
       id: 1,
       tipo: "entrada",
-      producto: "Shampoo Hidratante",
-      cantidad: 20,
-      motivo: "Compra a proveedor",
-      fecha: "2025-05-15",
+      producto: "Base HD Luminosa",
+      cantidad: 10,
+      motivo: "Reposición mensual",
+      fecha: "2025-06-01",
     },
     {
       id: 2,
       tipo: "salida",
-      producto: "Labial Mate Rojo",
-      cantidad: 5,
-      motivo: "Venta en mostrador",
-      fecha: "2025-05-14",
+      producto: "Esmalte Gel Rojo Rubí",
+      cantidad: 4,
+      motivo: "Venta directa",
+      fecha: "2025-06-02",
     },
     {
       id: 3,
       tipo: "entrada",
-      producto: "Crema Facial",
-      cantidad: 15,
-      motivo: "Promoción de temporada",
-      fecha: "2025-05-13",
+      producto: "Crema Hidratante con Ácido Hialurónico",
+      cantidad: 5,
+      motivo: "Compra a proveedor",
+      fecha: "2025-06-03",
     },
   ]);
 
-  const productosDisponibles = [
-    "Shampoo Hidratante",
-    "Labial Mate Rojo",
-    "Crema Facial",
-    "Polvo Compacto",
-    "Tónico Refrescante",
-    "Base HD Luminosa",
-    "Sérum Antiedad",
-  ];
+  const [productos, setProductos] = useState<Producto[]>([
+    {
+      id: 1,
+      nombre: "Base HD Luminosa",
+      descripcion: "Base líquida de cobertura media con acabado natural.",
+      categoria: "Maquillaje",
+      proveedor: "Distribuidora Bella",
+      valor: 220,
+      stock: 15,
+      imagen:
+        "https://static.mujerhoy.com/www/multimedia/202210/26/media/cortadas/bases-de-maquillaje-luminosas-309891308_167580719198570maquillaje-serum-skin-illusion-velvet-krHB--624x624@MujerHoy.jpg",
+    },
+    {
+      id: 2,
+      nombre: "Crema Hidratante con Ácido Hialurónico",
+      descripcion: "Hidrata profundamente y mejora la elasticidad de la piel.",
+      categoria: "Cuidado Facial",
+      proveedor: "Cosmeticos Lopez",
+      valor: 180,
+      stock: 10,
+      imagen:
+        "https://th.bing.com/th/id/OIP.UHxFL3bGYwZvoj8Z5vpLkwHaIp?cb=iwp2&rs=1&pid=ImgDetMain",
+    },
+    {
+      id: 3,
+      nombre: "Esmalte Gel Rojo Rubí",
+      descripcion: "Color intenso con larga duración y acabado profesional.",
+      categoria: "Uñas",
+      proveedor: "Distribuidora Bella",
+      valor: 75,
+      stock: 35,
+      imagen:
+        "https://th.bing.com/th/id/OIP.CP9Fi_9UADvQbjQW_4UIYAHaKU?cb=iwp2&rs=1&pid=ImgDetMain",
+    },
+  ]);
 
   const [modalAbierto, setModalAbierto] = useState(false);
   const [modalProductosAbierto, setModalProductosAbierto] = useState(false);
-  const [filtroTexto, setFiltroTexto] = useState("");
+  const [filtroTextoGeneral, setFiltroTextoGeneral] = useState("");
+  const [filtroTextoModal, setFiltroTextoModal] = useState("");
+  const inputRef = useRef<HTMLInputElement | null>(null);
   const [filtroTipo, setFiltroTipo] = useState("todos");
   const [filtroFecha, setFiltroFecha] = useState("");
   const router = useRouter();
@@ -88,6 +133,15 @@ export default function MovimientosPage() {
       router.replace("/login");
     }
   }, [router]);
+
+  useEffect(() => {
+    if (modalProductosAbierto) {
+      setFiltroTextoModal("");
+      setTimeout(() => {
+        inputRef.current?.focus();
+      }, 100); // le damos un poquito de tiempo para que el modal inicie baby claro que si
+    }
+  }, [modalProductosAbierto]);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -108,14 +162,14 @@ export default function MovimientosPage() {
     };
 
     setMovimientos([nuevoMovimiento, ...movimientos]);
-    setForm({ producto: "", cantidad: "", motivo: "" });
+    setForm({ producto: "", cantidad: "", motivo: "", valor: "" });
     setModalAbierto(false);
   };
 
   const movimientosFiltrados = movimientos.filter((mov) => {
     const coincideTexto =
-      mov.producto.toLowerCase().includes(filtroTexto.toLowerCase()) ||
-      mov.motivo.toLowerCase().includes(filtroTexto.toLowerCase());
+      mov.producto.toLowerCase().includes(filtroTextoGeneral.toLowerCase()) ||
+      mov.motivo.toLowerCase().includes(filtroTextoGeneral.toLowerCase());
     const coincideTipo =
       filtroTipo === "todos" ? true : mov.tipo === filtroTipo;
     const coincideFecha = filtroFecha ? mov.fecha === filtroFecha : true;
@@ -140,8 +194,8 @@ export default function MovimientosPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <Input
           placeholder="Buscar por producto o motivo"
-          value={filtroTexto}
-          onChange={(e) => setFiltroTexto(e.target.value)}
+          value={filtroTextoGeneral}
+          onChange={(e) => setFiltroTextoGeneral(e.target.value)}
         />
         <Select value={filtroTipo} onValueChange={setFiltroTipo}>
           <SelectTrigger>
@@ -163,7 +217,7 @@ export default function MovimientosPage() {
             variant="outline"
             className="w-full sm:w-auto"
             onClick={() => {
-              setFiltroTexto("");
+              setFiltroTextoGeneral("");
               setFiltroTipo("todos");
               setFiltroFecha("");
             }}
@@ -269,10 +323,17 @@ export default function MovimientosPage() {
               <div className="flex gap-2 items-start">
                 <div className="flex-1">
                   <AutoCompleteProducto
-                    productos={productosDisponibles}
+                    productos={productos.map((p) => p.nombre)}
                     valor={form.producto}
                     onSeleccion={(producto) =>
-                      setForm((prev) => ({ ...prev, producto }))
+                      setForm((prev) => ({
+                        ...prev,
+                        producto,
+                        valor: (
+                          productos.find((p) => p.nombre === producto)?.valor ||
+                          ""
+                        ).toString(),
+                      }))
                     }
                   />
                 </div>
@@ -301,6 +362,20 @@ export default function MovimientosPage() {
             </div>
 
             <div>
+              <Label htmlFor="valor">Valor unitario (C$)</Label>
+              <Input
+                id="valor"
+                type="number"
+                name="valor"
+                value={form.valor}
+                onChange={handleChange}
+                min={0}
+                step={0.01}
+                required
+              />
+            </div>
+
+            <div>
               <Label htmlFor="motivo">Motivo (opcional)</Label>
               <Textarea
                 id="motivo"
@@ -318,7 +393,7 @@ export default function MovimientosPage() {
         </DialogContent>
       </Dialog>
 
-      {/*Modal para ver todos productos*/}
+      {/* Modal para ver todos los productos */}
       <Dialog
         open={modalProductosAbierto}
         onOpenChange={setModalProductosAbierto}
@@ -327,19 +402,55 @@ export default function MovimientosPage() {
           <DialogHeader>
             <DialogTitle>Seleccionar producto</DialogTitle>
           </DialogHeader>
-          <div className="max-h-60 overflow-y-auto space-y-2">
-            {productosDisponibles.map((producto, i) => (
-              <div
-                key={i}
-                className="px-4 py-2 bg-gray-100 rounded hover:bg-blue-100 cursor-pointer transition"
-                onClick={() => {
-                  setForm((prev) => ({ ...prev, producto }));
-                  setModalProductosAbierto(false);
-                }}
-              >
-                {producto}
-              </div>
-            ))}
+
+          {/* Buscador */}
+          <input
+            ref={inputRef}
+            type="text"
+            placeholder="Buscar producto..."
+            className="w-full mb-4 px-4 py-2 border rounded text-sm"
+            value={filtroTextoModal}
+            onChange={(e) => setFiltroTextoModal(e.target.value)}
+          />
+
+          <div className="max-h-72 overflow-y-auto space-y-2">
+            {productos
+              .filter((p) =>
+                p.nombre.toLowerCase().includes(filtroTextoModal.toLowerCase())
+              )
+              .map((producto: Producto, i: number) => (
+                <div
+                  key={i}
+                  onClick={() => {
+                    setForm((prev) => ({
+                      ...prev,
+                      producto: producto.nombre,
+                      valor: producto.valor.toString(),
+                    }));
+                    setModalProductosAbierto(false);
+                  }}
+                  className="flex items-center gap-4 px-4 py-2 bg-gray-100 rounded hover:bg-blue-100 cursor-pointer transition"
+                >
+                  <img
+                    src={producto.imagen}
+                    alt={producto.nombre}
+                    className="w-12 h-12 object-cover rounded border"
+                  />
+                  <div>
+                    <p className="font-medium text-sm">{producto.nombre}</p>
+                    <p className="text-xs text-gray-600">C$ {producto.valor}</p>
+                  </div>
+                </div>
+              ))}
+
+            {/* Si no hay resultados */}
+            {productos.filter((p) =>
+              p.nombre.toLowerCase().includes(filtroTextoModal.toLowerCase())
+            ).length === 0 && (
+              <p className="text-center text-gray-500 text-sm">
+                Sin coincidencias
+              </p>
+            )}
           </div>
         </DialogContent>
       </Dialog>
