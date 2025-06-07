@@ -1,0 +1,62 @@
+// schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Usuario {
+  id       Int      @id @default(autoincrement())
+  nombre   String
+  email    String   @unique
+  password String
+  movimientos Movimiento[]
+  creadoEn DateTime @default(now())
+}
+
+model Proveedor {
+  id        Int       @id @default(autoincrement())
+  nombre    String
+  telefono  String?
+  direccion String?
+  productos Producto[]
+  creadoEn  DateTime  @default(now())
+}
+
+model Categoria {
+  id        Int       @id @default(autoincrement())
+  nombre    String    @unique
+  productos Producto[]
+  creadoEn  DateTime  @default(now())
+}
+
+model Producto {
+  id          Int         @id @default(autoincrement())
+  nombre      String
+  descripcion String
+  precio      Float
+  stock       Int
+  imagen      String?
+  categoriaId Int
+  proveedorId Int
+  categoria   Categoria   @relation(fields: [categoriaId], references: [id])
+  proveedor   Proveedor   @relation(fields: [proveedorId], references: [id])
+  movimientos Movimiento[]
+  creadoEn    DateTime    @default(now())
+}
+
+model Movimiento {
+  id          Int      @id @default(autoincrement())
+  tipo        String   // 'entrada' o 'salida'
+  cantidad    Int
+  motivo      String
+  fecha       DateTime @default(now())
+  productoId  Int
+  usuarioId   Int
+  producto    Producto @relation(fields: [productoId], references: [id])
+  usuario     Usuario  @relation(fields: [usuarioId], references: [id])
+}

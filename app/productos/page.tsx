@@ -21,6 +21,9 @@ import {
 import { Plus, Pencil, Trash2 } from "lucide-react";
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { List } from "lucide-react";
+import AutoCompleteProveedor from "@/components/AutoCompleteProveedor";
+import ModalSeleccionarProveedor from "@/components/modales/ModalSeleccionarProveedor";
 
 interface Producto {
   id: number;
@@ -34,44 +37,23 @@ interface Producto {
 }
 
 export default function ProductosPage() {
-  const [productos, setProductos] = useState<Producto[]>([
-    {
-      id: 1,
-      nombre: "Base HD Luminosa",
-      descripcion: "Base líquida de cobertura media con acabado natural.",
-      categoria: "Maquillaje",
-      proveedor: "Distribuidora Bella",
-      precio: 220,
-      stock: 15,
-      imagen:
-        "https://static.mujerhoy.com/www/multimedia/202210/26/media/cortadas/bases-de-maquillaje-luminosas-309891308_167580719198570maquillaje-serum-skin-illusion-velvet-krHB--624x624@MujerHoy.jpg",
-    },
-    {
-      id: 2,
-      nombre: "Crema Hidratante con Ácido Hialurónico",
-      descripcion: "Hidrata profundamente y mejora la elasticidad de la piel.",
-      categoria: "Cuidado Facial",
-      proveedor: "Cosmeticos Lopez",
-      precio: 180,
-      stock: 10,
-      imagen:
-        "https://th.bing.com/th/id/OIP.UHxFL3bGYwZvoj8Z5vpLkwHaIp?cb=iwp2&rs=1&pid=ImgDetMain",
-    },
-    {
-      id: 3,
-      nombre: "Esmalte Gel Rojo Rubí",
-      descripcion: "Color intenso con larga duración y acabado profesional.",
-      categoria: "Uñas",
-      proveedor: "Distribuidora Bella",
-      precio: 75,
-      stock: 35,
-      imagen:
-        "https://th.bing.com/th/id/OIP.CP9Fi_9UADvQbjQW_4UIYAHaKU?cb=iwp2&rs=1&pid=ImgDetMain",
-    },
-  ]);
-
+  const [productos, setProductos] = useState<Producto[]>([]);
   const [modalAbierto, setModalAbierto] = useState(false);
   const [modoEdicion, setModoEdicion] = useState(false);
+  const [form, setForm] = useState({
+    nombre: "",
+    descripcion: "",
+    categoria: "",
+    proveedor: "",
+    precio: "",
+    stock: "",
+    imagen: null,
+  });
+  const [proveedores, setProveedores] = useState([
+    "Distribuidora Bella",
+    "Cosmeticos Lopez",
+    "Beauty Store S.A.",
+  ]);
   const [productoActual, setProductoActual] = useState<Producto | null>(null);
   const [imagenPreview, setImagenPreview] = useState<string | null>(null);
   const [busqueda, setBusqueda] = useState("");
@@ -84,6 +66,8 @@ export default function ProductosPage() {
   const [modalCategoria, setModalCategoria] = useState(false);
   const [nuevaCategoria, setNuevaCategoria] = useState("");
 
+  const [modalProveedor, setModalProveedor] = useState(false);
+
   const [categoriaFiltro, setCategoriaFiltro] = useState("");
   const [precioMin, setPrecioMin] = useState("");
   const [precioMax, setPrecioMax] = useState("");
@@ -95,6 +79,19 @@ export default function ProductosPage() {
     if (!user) {
       router.replace("/login");
     }
+  }, [router]);
+
+    useEffect(() => {
+    const user = localStorage.getItem("usuario");
+    if (!user) {
+      router.replace("/login");
+      return;
+    }
+
+    fetch("/api/productos")
+      .then((res) => res.json())
+      .then(setProductos)
+      .catch(console.error);
   }, [router]);
 
   const abrirModalAgregar = () => {
@@ -120,31 +117,53 @@ export default function ProductosPage() {
     }
   };
 
-  const guardarProducto = (e: React.FormEvent<HTMLFormElement>) => {
+  const guardarProducto = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const form = e.currentTarget;
+    const formData = new FormData(e.currentTarget);
 
-    const nuevoProducto: Producto = {
-      id: productoActual?.id || Date.now(),
-      nombre: (form.nombre as any).value,
-      descripcion: (form.descripcion as any).value,
-      categoria: (form.categoria as any).value,
-      proveedor: (form.categoria as any).value,
-      precio: parseFloat((form.precio as any).value),
-      stock: parseInt((form.stock as any).value),
-      imagen: imagenPreview || undefined,
+    const productoData = {
+      nombre: formData.get("nombre") as string,
+      descripcion: formData.get("descripcion") as string,
+      categoria: formData.get("categoria") as string,
+      proveedor: form.proveedor,
+      precio: parseFloat(formData.get("precio") as string),
+      stock: parseInt(formData.get("stock") as string),
+      imagen: imagenPreview ?? "",
     };
 
-    if (modoEdicion) {
-      setProductos(
-        productos.map((p) => (p.id === nuevoProducto.id ? nuevoProducto : p))
-      );
-    } else {
-      setProductos([...productos, nuevoProducto]);
-    }
 
-    setModalAbierto(false);
+    const res = await fetch(
+      modoEdicion ? `/api/productos/${productoActual?.id}` : "/api/productos",
+      {
+        method: modoEdicion ? "PUT" : "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(productoData),
+      }
+    );
+
+    if (res.ok) {
+      const nuevo = await res.json();
+      setProductos((prev) =>
+        modoEdicion
+          ? prev.map((p) => (p.id === nuevo.id ? nuevo : p))
+          : [...prev, nuevo]
+      );
+      setModalAbierto(false);
+    } else {
+      console.error("Error al guardar producto");
+    }
   };
+
+     const eliminarProducto = async (id: number) => {
+      if (!confirm("¿Estás seguro de eliminar este producto?")) return;
+
+      const res = await fetch(`/api/productos/${id}`, { method: "DELETE" });
+      if (res.ok) {
+        setProductos((prev) => prev.filter((p) => p.id !== id));
+      } else {
+        console.error("Error al eliminar producto");
+      }
+    };
 
   const productosFiltrados = productos.filter((prod) => {
     const coincideBusqueda =
@@ -234,6 +253,7 @@ export default function ProductosPage() {
               <th className="px-6 py-4">Imagen</th>
               <th className="px-6 py-4">Nombre</th>
               <th className="px-6 py-4">Categoría</th>
+              <th className="px-6 py-4">Proveedor</th>
               <th className="px-6 py-4">Precio</th>
               <th className="px-6 py-4">Stock</th>
               <th className="px-6 py-4">Acciones</th>
@@ -255,6 +275,7 @@ export default function ProductosPage() {
                 </td>
                 <td className="px-6 py-4 font-medium">{prod.nombre}</td>
                 <td className="px-6 py-4">{prod.categoria}</td>
+                <td className="px-6 py-4">{prod.proveedor}</td>
                 <td className="px-6 py-4">C${prod.precio}</td>
                 <td className="px-6 py-4">{prod.stock}</td>
                 <td className="px-6 py-4">
@@ -270,6 +291,7 @@ export default function ProductosPage() {
                       variant="ghost"
                       size="icon"
                       className="text-red-500"
+                      onClick={() => eliminarProducto(prod.id)}
                     >
                       <Trash2 size={16} />
                     </Button>
@@ -342,19 +364,27 @@ export default function ProductosPage() {
 
               <div>
                 <Label htmlFor="proveedor">Proveedor</Label>
-                <Select
-                  name="proveedor"
-                  defaultValue={productoActual?.proveedor || ""}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Seleccionar proveedor" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Proveedor A">Proveedor A</SelectItem>
-                    <SelectItem value="Proveedor B">Proveedor B</SelectItem>
-                    <SelectItem value="Proveedor C">Proveedor C</SelectItem>
-                  </SelectContent>
-                </Select>
+                <div>
+                  <div className="flex items-start gap-2">
+                    <div className="flex-1">
+                      <AutoCompleteProveedor
+                        proveedores={proveedores}
+                        valor={form.proveedor}
+                        onSeleccion={(proveedor) =>
+                          setForm((prev) => ({ ...prev, proveedor }))
+                        }
+                      />
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setModalProveedor(true)}
+                      className="px-2"
+                    >
+                      <List size={20} />
+                    </Button>
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -461,6 +491,15 @@ export default function ProductosPage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <ModalSeleccionarProveedor
+        abierto={modalProveedor}
+        onClose={() => setModalProveedor(false)}
+        proveedores={proveedores}
+        onSeleccionar={(proveedor) =>
+          setForm((prev) => ({ ...prev, proveedor }))
+        }
+      />
     </div>
   );
 }
