@@ -46,16 +46,16 @@ export default function ProductosPage() {
     nombre: "",
     descripcion: "",
     categoria: "",
-    proveedor: "",
+    proveedor: 0,
     precio: "",
     stock: "",
     imagen: null,
   });
-  const [proveedores, setProveedores] = useState([
-    "Distribuidora Bella",
-    "Cosmeticos Lopez",
-    "Beauty Store S.A.",
-  ]);
+
+  const [proveedores, setProveedores] = useState<
+    { id: number; nombre: string }[]
+  >([]);
+
   const [productoActual, setProductoActual] = useState<Producto | null>(null);
   const [imagenPreview, setImagenPreview] = useState<string | null>(null);
   const [busqueda, setBusqueda] = useState("");
@@ -88,11 +88,40 @@ export default function ProductosPage() {
       .catch(console.error);
   }, [router]);
 
+useEffect(() => {
+  fetch("/api/categorias")
+    .then(async (res) => {
+      const data = await res.json();
+      if (res.ok && Array.isArray(data)) {
+        setCategorias(data);
+      } else {
+        console.error("Error al obtener categorías:", data);
+        setCategorias([]);
+      }
+    })
+    .catch((err) => {
+      console.error("Error al cargar categorías:", err);
+      setCategorias([]);
+    });
+}, []);
+
+
+
   useEffect(() => {
-    fetch("/api/categorias")
+    fetch("/api/proveedores")
       .then((res) => res.json())
-      .then((data) => setCategorias(data))
-      .catch((err) => console.error("Error al cargar categorías", err));
+      .then((data) => {
+        if (Array.isArray(data)) {
+          setProveedores(data);
+        } else {
+          console.error("La respuesta de proveedores no es un array:", data);
+          setProveedores([]);
+        }
+      })
+      .catch((err) => {
+        console.error("Error al cargar proveedores:", err);
+        setProveedores([]);
+      });
   }, []);
 
   const abrirModalAgregar = () => {
@@ -126,7 +155,7 @@ export default function ProductosPage() {
       nombre: formData.get("nombre") as string,
       descripcion: formData.get("descripcion") as string,
       categoriaId: parseInt(formData.get("categoria") as string),
-      proveedor: form.proveedor,
+      proveedorId: parseInt(formData.get("proveedor") as string),
       precio: parseFloat(formData.get("precio") as string),
       stock: parseInt(formData.get("stock") as string),
       imagen: imagenPreview ?? "",
@@ -399,13 +428,26 @@ export default function ProductosPage() {
                 <div>
                   <div className="flex items-start gap-2">
                     <div className="flex-1">
-                      <AutoCompleteProveedor
-                        proveedores={proveedores}
-                        valor={form.proveedor}
-                        onSeleccion={(proveedor) =>
-                          setForm((prev) => ({ ...prev, proveedor }))
+                      <Select
+                        name="proveedor"
+                        defaultValue={
+                          productoActual?.proveedor?.toString() || ""
                         }
-                      />
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Seleccionar proveedor" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {proveedores.map((prov) => (
+                            <SelectItem
+                              key={prov.id}
+                              value={prov.id.toString()}
+                            >
+                              {prov.nombre}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
                     <Button
                       type="button"

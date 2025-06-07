@@ -1,14 +1,19 @@
-'use client';
+"use client";
 
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { useState } from 'react';
-import { Input } from '@/components/ui/input';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { useState } from "react";
+import { Input } from "@/components/ui/input";
 
 interface ModalSeleccionarProveedorProps {
   abierto: boolean;
   onClose: () => void;
-  proveedores: string[];
-  onSeleccionar: (proveedor: string) => void;
+  proveedores: { id: number; nombre: string }[];
+  onSeleccionar: (proveedorId: number) => void;
 }
 
 export default function ModalSeleccionarProveedor({
@@ -17,10 +22,10 @@ export default function ModalSeleccionarProveedor({
   proveedores,
   onSeleccionar,
 }: ModalSeleccionarProveedorProps) {
-  const [busqueda, setBusqueda] = useState('');
+  const [busqueda, setBusqueda] = useState("");
 
   const filtrados = proveedores.filter((prov) =>
-    prov.toLowerCase().includes(busqueda.toLowerCase())
+    prov.nombre.toLowerCase().includes(busqueda.toLowerCase())
   );
 
   return (
@@ -39,21 +44,23 @@ export default function ModalSeleccionarProveedor({
         />
 
         <div className="max-h-60 overflow-y-auto space-y-2">
-          {filtrados.map((proveedor, i) => (
+          {filtrados.map((proveedor) => (
             <div
-              key={i}
+              key={proveedor.id}
               className="px-4 py-2 bg-gray-100 rounded hover:bg-blue-100 cursor-pointer transition"
               onClick={() => {
-                onSeleccionar(proveedor);
+                onSeleccionar(proveedor.id); 
                 onClose();
               }}
             >
-              {proveedor}
+              {proveedor.nombre}
             </div>
           ))}
 
           {filtrados.length === 0 && (
-            <p className="text-center text-gray-500 text-sm">Sin coincidencias</p>
+            <p className="text-center text-gray-500 text-sm">
+              Sin coincidencias
+            </p>
           )}
         </div>
       </DialogContent>

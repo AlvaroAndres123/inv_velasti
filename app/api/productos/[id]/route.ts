@@ -37,8 +37,15 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
 }
 
 // DELETE: eliminar un producto
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
-  const id = parseInt(params.id);
+export async function DELETE(
+  req: NextRequest,
+  context: { params: { id: string } }
+) {
+  const id = parseInt(context.params.id);
+  if (isNaN(id)) {
+    return NextResponse.json({ error: 'ID inválido' }, { status: 400 });
+  }
+
   try {
     await prisma.producto.delete({ where: { id } });
     return NextResponse.json({ mensaje: 'Producto eliminado' });
@@ -47,4 +54,3 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
     return NextResponse.json({ error: 'Error al eliminar producto' }, { status: 500 });
   }
 }
- 
