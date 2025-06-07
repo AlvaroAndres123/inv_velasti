@@ -1,13 +1,13 @@
-'use client';
-
+import { useState } from 'react';
 import { usePathname } from 'next/navigation';
 import Sidebar from '@/components/Sidebar';
-import { ReactNode, useState } from 'react';
+import { ReactNode } from 'react';
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const ocultarSidebar = pathname === '/login';
 
+  
   const [sidebarAbierto, setSidebarAbierto] = useState(false);
 
   return (
