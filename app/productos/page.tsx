@@ -29,15 +29,17 @@ interface Producto {
   id: number;
   nombre: string;
   descripcion: string;
-  categoria: string;
+  categoriaId: number;
   proveedor: string;
   precio: number;
   stock: number;
   imagen?: string;
+  categoria?: { nombre: string };
 }
 
 export default function ProductosPage() {
   const [productos, setProductos] = useState<Producto[]>([]);
+  const [errorCategoria, setErrorCategoria] = useState<string | null>(null);
   const [modalAbierto, setModalAbierto] = useState(false);
   const [modoEdicion, setModoEdicion] = useState(false);
   const [form, setForm] = useState({
@@ -58,11 +60,10 @@ export default function ProductosPage() {
   const [imagenPreview, setImagenPreview] = useState<string | null>(null);
   const [busqueda, setBusqueda] = useState("");
 
-  const [categorias, setCategorias] = useState([
-    "Maquillaje",
-    "Cuidado Facial",
-    "Uñas",
-  ]);
+  const [categorias, setCategorias] = useState<
+    { id: number; nombre: string }[]
+  >([]);
+
   const [modalCategoria, setModalCategoria] = useState(false);
   const [nuevaCategoria, setNuevaCategoria] = useState("");
 
@@ -78,13 +79,6 @@ export default function ProductosPage() {
     const user = localStorage.getItem("usuario");
     if (!user) {
       router.replace("/login");
-    }
-  }, [router]);
-
-    useEffect(() => {
-    const user = localStorage.getItem("usuario");
-    if (!user) {
-      router.replace("/login");
       return;
     }
 
@@ -93,6 +87,13 @@ export default function ProductosPage() {
       .then(setProductos)
       .catch(console.error);
   }, [router]);
+
+  useEffect(() => {
+    fetch("/api/categorias")
+      .then((res) => res.json())
+      .then((data) => setCategorias(data))
+      .catch((err) => console.error("Error al cargar categorías", err));
+  }, []);
 
   const abrirModalAgregar = () => {
     setProductoActual(null);
@@ -124,13 +125,12 @@ export default function ProductosPage() {
     const productoData = {
       nombre: formData.get("nombre") as string,
       descripcion: formData.get("descripcion") as string,
-      categoria: formData.get("categoria") as string,
+      categoriaId: parseInt(formData.get("categoria") as string),
       proveedor: form.proveedor,
       precio: parseFloat(formData.get("precio") as string),
       stock: parseInt(formData.get("stock") as string),
       imagen: imagenPreview ?? "",
     };
-
 
     const res = await fetch(
       modoEdicion ? `/api/productos/${productoActual?.id}` : "/api/productos",
@@ -154,26 +154,52 @@ export default function ProductosPage() {
     }
   };
 
-     const eliminarProducto = async (id: number) => {
-      if (!confirm("¿Estás seguro de eliminar este producto?")) return;
+  const eliminarProducto = async (id: number) => {
+    if (!confirm("¿Estás seguro de eliminar este producto?")) return;
 
-      const res = await fetch(`/api/productos/${id}`, { method: "DELETE" });
+    const res = await fetch(`/api/productos/${id}`, { method: "DELETE" });
+    if (res.ok) {
+      setProductos((prev) => prev.filter((p) => p.id !== id));
+    } else {
+      console.error("Error al eliminar producto");
+    }
+  };
+
+  const agregarCategoria = async () => {
+    const nueva = nuevaCategoria.trim();
+    if (!nueva) return;
+
+    try {
+      const res = await fetch("/api/categorias", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ nombre: nueva }),
+      });
+
       if (res.ok) {
-        setProductos((prev) => prev.filter((p) => p.id !== id));
+        const nuevaCat = await res.json();
+        setCategorias((prev) => [...prev, nuevaCat]);
+        setNuevaCategoria("");
+        setModalCategoria(false);
       } else {
-        console.error("Error al eliminar producto");
+        const data = await res.json();
+        setErrorCategoria(data.error || "No se pudo agregar la categoría.");
       }
-    };
+    } catch (error) {
+      console.error("Error al agregar categoría", error);
+      setErrorCategoria("Ocurrió un error inesperado al agregar la categoría.");
+    }
+  };
 
   const productosFiltrados = productos.filter((prod) => {
     const coincideBusqueda =
       prod.nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
-      prod.categoria.toLowerCase().includes(busqueda.toLowerCase());
+      prod.categoria?.nombre.toLowerCase().includes(busqueda.toLowerCase());
 
     const coincideCategoria =
       categoriaFiltro === "todas" || categoriaFiltro === ""
         ? true
-        : prod.categoria === categoriaFiltro;
+        : prod.categoria?.nombre === categoriaFiltro;
     const coincidePrecioMin = precioMin
       ? prod.precio >= parseFloat(precioMin)
       : true;
@@ -215,11 +241,14 @@ export default function ProductosPage() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="todas">Todas</SelectItem>
-            <SelectItem value="Maquillaje">Maquillaje</SelectItem>
-            <SelectItem value="Cuidado Facial">Cuidado Facial</SelectItem>
-            <SelectItem value="Uñas">Uñas</SelectItem>
+            {categorias.map((cat) => (
+              <SelectItem key={cat.id} value={cat.nombre}>
+                {cat.nombre}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
+
         <Input
           type="number"
           placeholder="Precio mínimo"
@@ -274,7 +303,9 @@ export default function ProductosPage() {
                   )}
                 </td>
                 <td className="px-6 py-4 font-medium">{prod.nombre}</td>
-                <td className="px-6 py-4">{prod.categoria}</td>
+                <td className="px-6 py-4">
+                  {prod.categoria?.nombre || "Sin categoría"}
+                </td>
                 <td className="px-6 py-4">{prod.proveedor}</td>
                 <td className="px-6 py-4">C${prod.precio}</td>
                 <td className="px-6 py-4">{prod.stock}</td>
@@ -338,19 +369,20 @@ export default function ProductosPage() {
                 <div className="flex items-center gap-2">
                   <Select
                     name="categoria"
-                    defaultValue={productoActual?.categoria || ""}
+                    defaultValue={productoActual?.categoriaId?.toString() || ""}
                   >
                     <SelectTrigger className="flex-1">
                       <SelectValue placeholder="Seleccionar categoría" />
                     </SelectTrigger>
                     <SelectContent>
-                      {categorias.map((cat, i) => (
-                        <SelectItem key={i} value={cat}>
-                          {cat}
+                      {categorias.map((cat) => (
+                        <SelectItem key={cat.id} value={cat.id.toString()}>
+                          {cat.nombre}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
+
                   <Button
                     type="button"
                     variant="ghost"
@@ -453,41 +485,57 @@ export default function ProductosPage() {
                 <h4 className="text-sm font-semibold text-gray-700 mb-2">
                   Categorías existentes
                 </h4>
+                {errorCategoria && (
+                  <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-2 rounded mb-3">
+                    {errorCategoria}
+                  </div>
+                )}
+
                 <ul className="divide-y divide-gray-200 max-h-48 overflow-y-auto">
-                  {categorias.map((cat, i) => (
+                  {categorias.map((cat) => (
                     <li
-                      key={i}
+                      key={cat.id}
                       className="flex justify-between items-center py-1 px-2 hover:bg-gray-50 rounded"
                     >
-                      <span>{cat}</span>
+                      <span>{cat.nombre}</span>
                       <button
                         type="button"
                         className="text-red-500 text-sm hover:underline"
-                        onClick={() =>
-                          setCategorias((prev) =>
-                            prev.filter((_, index) => index !== i)
-                          )
-                        }
+                        onClick={async () => {
+                          const confirmar = confirm(
+                            `¿Estás seguro de eliminar "${cat.nombre}"?`
+                          );
+                          if (!confirmar) return;
+
+                          try {
+                            const res = await fetch(
+                              `/api/categorias/${cat.id}`,
+                              {
+                                method: "DELETE",
+                              }
+                            );
+                            if (res.ok) {
+                              setCategorias((prev) =>
+                                prev.filter((c) => c.id !== cat.id)
+                              );
+                            } else {
+                              const data = await res.json();
+                              alert(data.error || "No se pudo eliminar");
+                            }
+                          } catch (err) {
+                            console.error("Error al eliminar:", err);
+                            alert("Error al eliminar categoría");
+                          }
+                        }}
                       >
-                        Eliminar
+                        <Trash2 size={14} />
                       </button>
                     </li>
                   ))}
                 </ul>
               </div>
             )}
-            <Button
-              onClick={() => {
-                const nueva = nuevaCategoria.trim();
-                if (nueva && !categorias.includes(nueva)) {
-                  setCategorias([...categorias, nueva]);
-                  setNuevaCategoria("");
-                  setModalCategoria(false);
-                }
-              }}
-            >
-              Agregar
-            </Button>
+            <Button onClick={agregarCategoria}>Agregar</Button>
           </div>
         </DialogContent>
       </Dialog>

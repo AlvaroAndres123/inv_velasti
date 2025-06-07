@@ -21,11 +21,14 @@ model Usuario {
 model Proveedor {
   id        Int       @id @default(autoincrement())
   nombre    String
+  contacto  String?
   telefono  String?
+  correo    String?
   direccion String?
   productos Producto[]
   creadoEn  DateTime  @default(now())
 }
+
 
 model Categoria {
   id        Int       @id @default(autoincrement())
