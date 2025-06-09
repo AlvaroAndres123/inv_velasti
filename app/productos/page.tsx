@@ -31,12 +31,14 @@ interface Producto {
   nombre: string;
   descripcion: string;
   categoriaId: number;
-  proveedor: string;
+  proveedorId: number;
   precio: number;
   stock: number;
   imagen?: string;
   categoria?: { nombre: string };
+  proveedor?: { nombre: string };
 }
+
 
 export default function ProductosPage() {
   const [productos, setProductos] = useState<Producto[]>([]);

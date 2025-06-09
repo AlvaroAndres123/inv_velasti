@@ -7,17 +7,19 @@ const prisma = new PrismaClient();
 export async function GET() {
   try {
     const productos = await prisma.producto.findMany({
-      orderBy: { id: "desc" },
+      orderBy: { id: 'desc' },
+      include: {
+        categoria: { select: { nombre: true } },
+        proveedor: { select: { nombre: true } },
+      },
     });
     return NextResponse.json(productos);
   } catch (error) {
-    console.error("Error al obtener productos:", error);
-    return NextResponse.json(
-      { error: "Error al obtener productos" },
-      { status: 500 }
-    );
+    console.error('Error al obtener productos:', error);
+    return NextResponse.json({ error: 'Error al obtener productos' }, { status: 500 });
   }
 }
+
 
 // POST: crear producto
 export async function POST(req: NextRequest) {
@@ -48,16 +50,21 @@ export async function POST(req: NextRequest) {
     }
 
     const nuevo = await prisma.producto.create({
-      data: {
-        nombre,
-        descripcion,
-        categoriaId,
-        proveedorId,
-        precio,
-        stock,
-        imagen,
-      },
-    });
+  data: {
+    nombre,
+    descripcion,
+    precio,
+    stock,
+    imagen,
+    categoriaId: categoriaId,
+    proveedorId: proveedorId,
+  },
+  include: {
+    categoria: true,
+    proveedor: true,
+  },
+});
+
 
     return NextResponse.json(nuevo, { status: 201 });
   } catch (error) {
