@@ -1,13 +1,18 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Plus, Pencil, Trash2 } from 'lucide-react';
-import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Plus, Pencil, Trash2 } from "lucide-react";
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 
 interface Proveedor {
   id: number;
@@ -19,37 +24,38 @@ interface Proveedor {
 }
 
 export default function ProveedoresPage() {
-  const [proveedores, setProveedores] = useState<Proveedor[]>([
-    {
-      id: 1,
-      nombre: 'Distribuidora Bella',
-      contacto: 'María García',
-      telefono: '8855-1234',
-      correo: 'bella@correo.com',
-      direccion: 'Managua, Altamira',
-    },
-    {
-      id: 2,
-      nombre: 'Cosméticos López',
-      contacto: 'Carlos López',
-      telefono: '8722-5678',
-      correo: 'clopez@cosmeticos.com',
-      direccion: 'León, Centro',
-    },
-  ]);
+  const [proveedores, setProveedores] = useState<Proveedor[]>([]);
 
   const [modalAbierto, setModalAbierto] = useState(false);
   const [modoEdicion, setModoEdicion] = useState(false);
-  const [proveedorActual, setProveedorActual] = useState<Proveedor | null>(null);
-  const [busqueda, setBusqueda] = useState('');
+  const [proveedorActual, setProveedorActual] = useState<Proveedor | null>(
+    null
+  );
+  const [busqueda, setBusqueda] = useState("");
   const router = useRouter();
 
   useEffect(() => {
-    const user = localStorage.getItem('usuario');
+    const user = localStorage.getItem("usuario");
     if (!user) {
-      router.replace('/login');
+      router.replace("/login");
     }
   }, [router]);
+
+  useEffect(() => {
+  fetch("/api/proveedores")
+    .then((res) => res.json())
+    .then((data) => {
+      if (Array.isArray(data)) {
+        setProveedores(data);
+      } else {
+        console.error("La respuesta no es un array:", data);
+      }
+    })
+    .catch((err) => {
+      console.error("Error al cargar proveedores", err);
+    });
+}, []);
+
 
   const abrirModalAgregar = () => {
     setProveedorActual(null);
@@ -63,43 +69,82 @@ export default function ProveedoresPage() {
     setModalAbierto(true);
   };
 
-  const guardarProveedor = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const form = e.currentTarget;
+const guardarProveedor = async (e: React.FormEvent<HTMLFormElement>) => {
+  e.preventDefault();
+  const form = e.currentTarget;
 
-    const nuevoProveedor: Proveedor = {
-      id: proveedorActual?.id || Date.now(),
-      nombre: (form.nombre as any).value,
-      contacto: (form.contacto as any).value,
-      telefono: (form.telefono as any).value,
-      correo: (form.correo as any).value,
-      direccion: (form.direccion as any).value,
-    };
+  const proveedor = {
+    nombre: (form.nombre as any).value,
+    contacto: (form.contacto as any).value,
+    telefono: (form.telefono as any).value,
+    correo: (form.correo as any).value,
+    direccion: (form.direccion as any).value,
+  };
 
-    if (modoEdicion) {
-      setProveedores((prev) =>
-        prev.map((p) => (p.id === nuevoProveedor.id ? nuevoProveedor : p))
-      );
+  try {
+    const res = await fetch(
+      proveedorActual
+        ? `/api/proveedores/${proveedorActual.id}` // PUT necesita el ID en la URL
+        : '/api/proveedores',                     // POST es como siempre
+      {
+        method: proveedorActual ? 'PUT' : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(proveedor),
+      }
+    );
+
+    const data = await res.json();
+
+    if (res.ok) {
+      if (proveedorActual) {
+        setProveedores((prev) =>
+          prev.map((p) => (p.id === data.id ? data : p))
+        );
+      } else {
+        setProveedores((prev) => [...prev, data]);
+      }
+
+      setModalAbierto(false);
     } else {
-      setProveedores((prev) => [...prev, nuevoProveedor]);
+      alert(data.error || 'Error al guardar proveedor');
     }
+  } catch (error) {
+    console.error('Error al guardar proveedor:', error);
+    alert('Error al guardar proveedor');
+  }
+};
 
-    setModalAbierto(false);
-  };
 
-  const eliminarProveedor = (id: number) => {
-    setProveedores((prev) => prev.filter((p) => p.id !== id));
-  };
+
+ const eliminarProveedor = async (id: number) => {
+  try {
+    const res = await fetch(`/api/proveedores/${id}`, { method: 'DELETE' });
+    if (res.ok) {
+      setProveedores((prev) => prev.filter((p) => p.id !== id));
+    } else {
+      const data = await res.json();
+      alert(data.error || 'Error al eliminar proveedor');
+    }
+  } catch (error) {
+    console.error('Error al eliminar proveedor:', error);
+    alert('Error al eliminar proveedor');
+  }
+};
+
 
   const proveedoresFiltrados = proveedores.filter((p) =>
-    `${p.nombre} ${p.contacto}`.toLowerCase().includes(busqueda.toLowerCase())
-  );
+  `${p.nombre} ${p.contacto}`.toLowerCase().includes(busqueda.toLowerCase())
+);
+
 
   return (
     <div className="p-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
         <h2 className="text-3xl font-bold text-gray-800">Proveedores</h2>
-        <Button onClick={abrirModalAgregar} className="flex gap-2 whitespace-nowrap">
+        <Button
+          onClick={abrirModalAgregar}
+          className="flex gap-2 whitespace-nowrap"
+        >
           <Plus size={18} /> Agregar proveedor
         </Button>
       </div>
@@ -134,7 +179,11 @@ export default function ProveedoresPage() {
                 <td className="px-6 py-4">{prov.direccion}</td>
                 <td className="px-6 py-4">
                   <div className="flex gap-2">
-                    <Button variant="ghost" size="icon" onClick={() => abrirModalEditar(prov)}>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => abrirModalEditar(prov)}
+                    >
                       <Pencil size={16} />
                     </Button>
                     <Button
@@ -157,35 +206,64 @@ export default function ProveedoresPage() {
       <Dialog open={modalAbierto} onOpenChange={setModalAbierto}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{modoEdicion ? 'Editar Proveedor' : 'Agregar Proveedor'}</DialogTitle>
+            <DialogTitle>
+              {modoEdicion ? "Editar Proveedor" : "Agregar Proveedor"}
+            </DialogTitle>
           </DialogHeader>
           <form className="space-y-4" onSubmit={guardarProveedor}>
             <div>
               <Label htmlFor="nombre">Nombre</Label>
-              <Input id="nombre" name="nombre" defaultValue={proveedorActual?.nombre} required />
+              <Input
+                id="nombre"
+                name="nombre"
+                defaultValue={proveedorActual?.nombre}
+                required
+              />
             </div>
             <div>
               <Label htmlFor="contacto">Contacto</Label>
-              <Input id="contacto" name="contacto" defaultValue={proveedorActual?.contacto} required />
+              <Input
+                id="contacto"
+                name="contacto"
+                defaultValue={proveedorActual?.contacto}
+                required
+              />
             </div>
             <div>
               <Label htmlFor="telefono">Teléfono</Label>
-              <Input id="telefono" name="telefono" defaultValue={proveedorActual?.telefono} required />
+              <Input
+                id="telefono"
+                name="telefono"
+                defaultValue={proveedorActual?.telefono}
+                required
+              />
             </div>
             <div>
               <Label htmlFor="correo">Correo</Label>
-              <Input id="correo" name="correo" type="email" defaultValue={proveedorActual?.correo} required />
+              <Input
+                id="correo"
+                name="correo"
+                type="email"
+                defaultValue={proveedorActual?.correo}
+                required
+              />
             </div>
             <div>
               <Label htmlFor="direccion">Dirección</Label>
-              <Input id="direccion" name="direccion" defaultValue={proveedorActual?.direccion} required />
+              <Input
+                id="direccion"
+                name="direccion"
+                defaultValue={proveedorActual?.direccion}
+                required
+              />
             </div>
             <Button type="submit" className="w-full">
-              {modoEdicion ? 'Actualizar' : 'Guardar'}
+              {modoEdicion ? "Actualizar" : "Guardar"}
             </Button>
           </form>
         </DialogContent>
       </Dialog>
     </div>
   );
+
 }
