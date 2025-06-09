@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { supabase } from "@/lib/supabaseClient";
 import {
   Dialog,
   DialogContent,
@@ -147,20 +148,34 @@ useEffect(() => {
     }
   };
 
-  const guardarProducto = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const formData = new FormData(e.currentTarget);
+const guardarProducto = async (e: React.FormEvent<HTMLFormElement>) => {
+  e.preventDefault();
+  const formData = new FormData(e.currentTarget);
 
-    const productoData = {
-      nombre: formData.get("nombre") as string,
-      descripcion: formData.get("descripcion") as string,
-      categoriaId: parseInt(formData.get("categoria") as string),
-      proveedorId: parseInt(formData.get("proveedor") as string),
-      precio: parseFloat(formData.get("precio") as string),
-      stock: parseInt(formData.get("stock") as string),
-      imagen: imagenPreview ?? "",
-    };
+  const nombre = formData.get("nombre")?.toString().trim();
+  const descripcion = formData.get("descripcion")?.toString().trim();
+  const categoria = formData.get("categoria")?.toString();
+  const proveedor = formData.get("proveedor")?.toString();
+  const precio = formData.get("precio")?.toString();
+  const stock = formData.get("stock")?.toString();
 
+  // Validación básica
+  if (!nombre || !descripcion || !categoria || !proveedor || !precio || !stock) {
+    alert("Todos los campos son obligatorios.");
+    return;
+  }
+
+  const productoData = {
+    nombre,
+    descripcion,
+    categoriaId: parseInt(categoria),
+    proveedorId: parseInt(proveedor),
+    precio: parseFloat(precio),
+    stock: parseInt(stock),
+    imagen: imagenPreview ?? "",
+  };
+
+  try {
     const res = await fetch(
       modoEdicion ? `/api/productos/${productoActual?.id}` : "/api/productos",
       {
@@ -179,9 +194,15 @@ useEffect(() => {
       );
       setModalAbierto(false);
     } else {
-      console.error("Error al guardar producto");
+      const error = await res.json();
+      alert(error?.message || "Error al guardar producto");
     }
-  };
+  } catch (error) {
+    console.error("Error al guardar producto:", error);
+    alert("Ocurrió un error al guardar el producto.");
+  }
+};
+
 
   const eliminarProducto = async (id: number) => {
     if (!confirm("¿Estás seguro de eliminar este producto?")) return;
@@ -335,7 +356,7 @@ useEffect(() => {
                 <td className="px-6 py-4">
                   {prod.categoria?.nombre || "Sin categoría"}
                 </td>
-                <td className="px-6 py-4">{prod.proveedor}</td>
+                <td className="px-6 py-4">{prod.proveedor?.nombre}</td>
                 <td className="px-6 py-4">C${prod.precio}</td>
                 <td className="px-6 py-4">{prod.stock}</td>
                 <td className="px-6 py-4">
