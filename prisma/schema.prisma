@@ -14,9 +14,9 @@ model Usuario {
   nombre   String
   email    String   @unique
   password String
-  movimientos Movimiento[]
   creadoEn DateTime @default(now())
 }
+
 
 model Proveedor {
   id        Int       @id @default(autoincrement())
@@ -58,9 +58,8 @@ model Movimiento {
   tipo        String   // 'entrada' o 'salida'
   cantidad    Int
   motivo      String
+  valor       Float
   fecha       DateTime @default(now())
   productoId  Int
-  usuarioId   Int
   producto    Producto @relation(fields: [productoId], references: [id])
-  usuario     Usuario  @relation(fields: [usuarioId], references: [id])
 }

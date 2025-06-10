@@ -25,9 +25,19 @@ import { useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 
 interface Movimiento {
+  productoId: number;
   id: number;
   tipo: "entrada" | "salida";
-  producto: string;
+  producto: {
+    id: number;
+    nombre: string;
+    descripcion: string;
+    categoria: string;
+    proveedor: string;
+    precio: number;
+    stock: number;
+    imagen: string;
+  };
   cantidad: number;
   motivo: string;
   fecha: string;
@@ -39,84 +49,41 @@ interface Producto {
   descripcion: string;
   categoria: string;
   proveedor: string;
-  valor: number;
+  precio: number; 
   stock: number;
   imagen: string;
 }
+
 
 export default function MovimientosPage() {
   const [tipoMovimiento, setTipoMovimiento] = useState<"entrada" | "salida">(
     "entrada"
   );
+
   const [form, setForm] = useState({
-    producto: "",
+    productoId: "",
     cantidad: "",
     motivo: "",
     valor: "",
   });
 
-  const [movimientos, setMovimientos] = useState<Movimiento[]>([
-    {
-      id: 1,
-      tipo: "entrada",
-      producto: "Base HD Luminosa",
-      cantidad: 10,
-      motivo: "Reposición mensual",
-      fecha: "2025-06-01",
-    },
-    {
-      id: 2,
-      tipo: "salida",
-      producto: "Esmalte Gel Rojo Rubí",
-      cantidad: 4,
-      motivo: "Venta directa",
-      fecha: "2025-06-02",
-    },
-    {
-      id: 3,
-      tipo: "entrada",
-      producto: "Crema Hidratante con Ácido Hialurónico",
-      cantidad: 5,
-      motivo: "Compra a proveedor",
-      fecha: "2025-06-03",
-    },
-  ]);
+  const [movimientos, setMovimientos] = useState<Movimiento[]>([]);
 
-  const [productos, setProductos] = useState<Producto[]>([
-    {
-      id: 1,
-      nombre: "Base HD Luminosa",
-      descripcion: "Base líquida de cobertura media con acabado natural.",
-      categoria: "Maquillaje",
-      proveedor: "Distribuidora Bella",
-      valor: 220,
-      stock: 15,
-      imagen:
-        "https://static.mujerhoy.com/www/multimedia/202210/26/media/cortadas/bases-de-maquillaje-luminosas-309891308_167580719198570maquillaje-serum-skin-illusion-velvet-krHB--624x624@MujerHoy.jpg",
-    },
-    {
-      id: 2,
-      nombre: "Crema Hidratante con Ácido Hialurónico",
-      descripcion: "Hidrata profundamente y mejora la elasticidad de la piel.",
-      categoria: "Cuidado Facial",
-      proveedor: "Cosmeticos Lopez",
-      valor: 180,
-      stock: 10,
-      imagen:
-        "https://th.bing.com/th/id/OIP.UHxFL3bGYwZvoj8Z5vpLkwHaIp?cb=iwp2&rs=1&pid=ImgDetMain",
-    },
-    {
-      id: 3,
-      nombre: "Esmalte Gel Rojo Rubí",
-      descripcion: "Color intenso con larga duración y acabado profesional.",
-      categoria: "Uñas",
-      proveedor: "Distribuidora Bella",
-      valor: 75,
-      stock: 35,
-      imagen:
-        "https://th.bing.com/th/id/OIP.CP9Fi_9UADvQbjQW_4UIYAHaKU?cb=iwp2&rs=1&pid=ImgDetMain",
-    },
-  ]);
+  const [productos, setProductos] = useState<Producto[]>([]);
+  useEffect(() => {
+    fetch("/api/productos")
+      .then((res) => res.json())
+      .then((data) => setProductos(data))
+      .catch((err) => console.error("Error cargando productos", err));
+  }, []);
+
+  useEffect(() => {
+  fetch("/api/movimientos")
+    .then((res) => res.json())
+    .then((data) => setMovimientos(data))
+    .catch((err) => console.error("Error cargando movimientos", err));
+}, []);
+
 
   const [modalAbierto, setModalAbierto] = useState(false);
   const [modalProductosAbierto, setModalProductosAbierto] = useState(false);
@@ -148,28 +115,56 @@ export default function MovimientosPage() {
   ) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
+const registrarMovimiento = async () => {
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  // Eliminamos la verificación de usuario chico tal vez a futuro estara
 
-    const nuevoMovimiento: Movimiento = {
-      id: movimientos.length + 1,
-      tipo: tipoMovimiento,
-      producto: form.producto,
-      cantidad: parseInt(form.cantidad),
-      motivo: form.motivo || "Sin especificar",
-      fecha: new Date().toISOString().split("T")[0],
-    };
+  if (!form.productoId || !form.cantidad || !form.valor) {
+    alert("Todos los campos son obligatorios.");
+    return;
+  }
 
-    setMovimientos([nuevoMovimiento, ...movimientos]);
-    setForm({ producto: "", cantidad: "", motivo: "", valor: "" });
-    setModalAbierto(false);
-  };
+const movimiento = {
+  tipo: tipoMovimiento,
+  cantidad: parseInt(form.cantidad),
+  motivo: form.motivo || "Sin motivo",
+  productoId: parseInt(form.productoId),
+  valor: parseFloat(form.valor),
+};
+
+
+
+  try {
+    const res = await fetch("/api/movimientos", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(movimiento),
+    });
+
+    const data = await res.json();
+
+    if (res.ok) {
+      console.log("Movimiento registrado:", data);
+      // Actualiza la tabla o lista de movimientos
+      setMovimientos((prev) => [data, ...prev]);
+      setModalAbierto(false);
+    } else {
+      alert(data.error || "Error al registrar movimiento.");
+    }
+  } catch (err) {
+    console.error("Error al registrar movimiento:", err);
+    alert("Error al registrar movimiento.");
+  }
+};
+
 
   const movimientosFiltrados = movimientos.filter((mov) => {
-    const coincideTexto =
-      mov.producto.toLowerCase().includes(filtroTextoGeneral.toLowerCase()) ||
-      mov.motivo.toLowerCase().includes(filtroTextoGeneral.toLowerCase());
+   const coincideTexto =
+  (mov.producto?.nombre?.toLowerCase() || "").includes(filtroTextoGeneral.toLowerCase()) ||
+  mov.motivo.toLowerCase().includes(filtroTextoGeneral.toLowerCase());
+
     const coincideTipo =
       filtroTipo === "todos" ? true : mov.tipo === filtroTipo;
     const coincideFecha = filtroFecha ? mov.fecha === filtroFecha : true;
@@ -284,7 +279,10 @@ export default function MovimientosPage() {
                 >
                   {mov.tipo.charAt(0).toUpperCase() + mov.tipo.slice(1)}
                 </td>
-                <td className="px-4 py-3 sm:px-6 sm:py-4">{mov.producto}</td>
+                <td className="px-4 py-3 sm:px-6 sm:py-4">
+                  {productos.find((p) => p.id === mov.productoId)?.nombre ||
+                    "Desconocido"}
+                </td>
                 <td className="px-4 py-3 sm:px-6 sm:py-4">{mov.cantidad}</td>
                 <td className="px-4 py-3 sm:px-6 sm:py-4">{mov.motivo}</td>
               </tr>
@@ -299,7 +297,14 @@ export default function MovimientosPage() {
           <DialogHeader>
             <DialogTitle>Registrar movimiento</DialogTitle>
           </DialogHeader>
-          <form className="space-y-4" onSubmit={handleSubmit}>
+          <form
+  className="space-y-4"
+  onSubmit={(e) => {
+    e.preventDefault();         // <--- Nos faltaba esta pelada
+    registrarMovimiento();     
+  }}
+>
+
             <div>
               <Label>Tipo de movimiento</Label>
               <Select
@@ -322,20 +327,35 @@ export default function MovimientosPage() {
               <Label htmlFor="producto">Producto</Label>
               <div className="flex gap-2 items-start">
                 <div className="flex-1">
-                  <AutoCompleteProducto
-                    productos={productos.map((p) => p.nombre)}
-                    valor={form.producto}
-                    onSeleccion={(producto) =>
-                      setForm((prev) => ({
-                        ...prev,
-                        producto,
-                        valor: (
-                          productos.find((p) => p.nombre === producto)?.valor ||
-                          ""
-                        ).toString(),
-                      }))
+                  <Select
+                    value={form.productoId}
+                    onValueChange={(val) =>
+                      setForm((prev) => {
+                        const producto = productos.find(
+                          (p) => p.id.toString() === val
+                        );
+                        return {
+                          ...prev,
+                          productoId: val,
+                          valor: producto?.precio?.toString() || "",
+                        };
+                      })
                     }
-                  />
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Seleccionar producto" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {productos.map((producto) => (
+                        <SelectItem
+                          key={producto.id}
+                          value={producto.id.toString()}
+                        >
+                          {producto.nombre}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <Button
                   type="button"
@@ -422,13 +442,14 @@ export default function MovimientosPage() {
                 <div
                   key={i}
                   onClick={() => {
-                    setForm((prev) => ({
-                      ...prev,
-                      producto: producto.nombre,
-                      valor: producto.valor.toString(),
-                    }));
-                    setModalProductosAbierto(false);
-                  }}
+  setForm((prev) => ({
+    ...prev,
+    productoId: producto.id.toString(), 
+    valor: producto.precio.toString(),
+  }));
+  setModalProductosAbierto(false);
+}}
+
                   className="flex items-center gap-4 px-4 py-2 bg-gray-100 rounded hover:bg-blue-100 cursor-pointer transition"
                 >
                   <img
@@ -438,7 +459,7 @@ export default function MovimientosPage() {
                   />
                   <div>
                     <p className="font-medium text-sm">{producto.nombre}</p>
-                    <p className="text-xs text-gray-600">C$ {producto.valor}</p>
+                    <p className="text-xs text-gray-600">C$ {producto.precio}</p>
                   </div>
                 </div>
               ))}
