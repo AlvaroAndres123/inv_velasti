@@ -28,11 +28,14 @@ export async function GET(
 }
 
 // PUT: actualizar un producto
-export async function PUT(
-  req: NextRequest,
-  { params }: { params: { id: string } }
-) {
-  const id = parseInt(params.id);
+export async function PUT(req: NextRequest) {
+  const url = new URL(req.url);
+  const idStr = url.pathname.split('/').pop(); 
+  const id = Number(idStr);
+
+  if (isNaN(id)) {
+    return NextResponse.json({ error: 'ID inválido' }, { status: 400 });
+  }
   const body = await req.json();
   const { nombre, descripcion, categoria, proveedor, precio, stock, imagen } =
     body;

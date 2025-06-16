@@ -44,6 +44,25 @@ const años = ["2023", "2024", "2025"];
 
 const colores = ["#3b82f6", "#10b981", "#f97316", "#ef4444", "#8b5cf6"];
 
+interface Producto {
+  id: number;
+  nombre: string;
+  descripcion: string;
+  precio: number;
+  stock: number;
+  imagen?: string;
+}
+
+interface Movimiento {
+  id: number;
+  tipo: "entrada" | "salida";
+  cantidad: number;
+  motivo: string;
+  valor: number;
+  fecha: string;
+  producto: Producto; // para poder usar producto.nombre
+}
+
 export default function Home() {
   const [mesSeleccionado, setMesSeleccionado] = useState("Mayo");
   const [añoSeleccionado, setAñoSeleccionado] = useState("2025");
@@ -52,43 +71,36 @@ export default function Home() {
   const router = useRouter();
   const [cargando, setCargando] = useState(true);
   const [modalStockBajoAbierto, setModalStockBajoAbierto] = useState(false);
+  const [ventasMensuales, setVentasMensuales] = useState<
+    { mes: string; ventas: number }[]
+  >([]);
+  const [productos, setProductos] = useState<Producto[]>([]);
+  const [movimientos, setMovimientos] = useState<Movimiento[]>([]);
 
-const [productos, setProductos] = useState([
-  {
-    id: 1,
-    nombre: "Base HD Luminosa",
-    descripcion: "Base líquida de cobertura media con acabado natural.",
-    categoria: "Maquillaje",
-    proveedor: "Distribuidora Bella",
-    valor: 220,
-    stock: 2,
-    imagen:
-      "https://static.mujerhoy.com/www/multimedia/202210/26/media/cortadas/bases-de-maquillaje-luminosas-309891308_167580719198570maquillaje-serum-skin-illusion-velvet-krHB--624x624@MujerHoy.jpg",
-  },
-  {
-    id: 2,
-    nombre: "Crema Hidratante con Ácido Hialurónico",
-    descripcion: "Hidrata profundamente y mejora la elasticidad de la piel.",
-    categoria: "Cuidado Facial",
-    proveedor: "Cosmeticos Lopez",
-    valor: 180,
-    stock: 10,
-    imagen:
-      "https://th.bing.com/th/id/OIP.UHxFL3bGYwZvoj8Z5vpLkwHaIp?cb=iwp2&rs=1&pid=ImgDetMain",
-  },
-  {
-    id: 3,
-    nombre: "Esmalte Gel Rojo Rubí",
-    descripcion: "Color intenso con larga duración y acabado profesional.",
-    categoria: "Uñas",
-    proveedor: "Distribuidora Bella",
-    valor: 75,
-    stock: 4,
-    imagen:
-      "https://th.bing.com/th/id/OIP.CP9Fi_9UADvQbjQW_4UIYAHaKU?cb=iwp2&rs=1&pid=ImgDetMain",
-  },
-]);
+  useEffect(() => {
+    const user = localStorage.getItem("usuario");
+    if (!user) {
+      router.replace("/login");
+      return;
+    }
 
+    Promise.all([
+      fetch("/api/productos").then((res) => res.json()),
+      fetch("/api/movimientos").then((res) => res.json()),
+    ])
+      .then(([productosData, movimientosData]) => {
+        setProductos(productosData);
+        setMovimientos(movimientosData);
+        setCargando(false);
+      })
+      .catch((err) => {
+        console.error("Error al cargar datos:", err);
+        setCargando(false);
+      });
+  }, [router]);
+
+  const productosStockBajo = productos.filter((p) => p.stock <= 5);
+  const totalProductos = productos.length;
 
   useEffect(() => {
     const user = localStorage.getItem("usuario");
@@ -99,33 +111,73 @@ const [productos, setProductos] = useState([
     }
   }, [router]);
 
+    useEffect(() => {
+    fetch("/api/ventas-mensuales")
+      .then((res) => res.json())
+      .then((data) => setVentasMensuales(data))
+      .catch((err) => console.error("Error al cargar ventas mensuales:", err));
+  }, []);
+
   if (cargando) return null;
 
-  const resumenMovimientos = [
-    { mes: "Ene", entradas: 120, salidas: 80 },
-    { mes: "Feb", entradas: 150, salidas: 100 },
-    { mes: "Mar", entradas: 170, salidas: 130 },
-    { mes: "Abr", entradas: 200, salidas: 160 },
-    { mes: "May", entradas: 220, salidas: 190 },
-    { mes: "Jun", entradas: 180, salidas: 150 },
-  ];
+  const resumenMovimientos = meses.map((mesNombre, index) => {
+    const mesNum = index + 1; // de 1 a 12
+    let entradas = 0;
+    let salidas = 0;
 
-  const ventasMensuales = [
-    { mes: "Ene", ventas: 2400 },
-    { mes: "Feb", ventas: 1398 },
-    { mes: "Mar", ventas: 9800 },
-    { mes: "Abr", ventas: 3908 },
-    { mes: "May", ventas: 4800 },
-    { mes: "Jun", ventas: 3800 },
-  ];
+    movimientos.forEach((mov) => {
+      const fecha = new Date(mov.fecha);
+      if (
+        fecha.getMonth() + 1 === mesNum &&
+        fecha.getFullYear() === parseInt(añoSeleccionado)
+      ) {
+        if (mov.tipo === "entrada") entradas += mov.cantidad;
+        else if (mov.tipo === "salida") salidas += mov.cantidad;
+      }
+    });
 
-  const productosMasVendidos = [
-    { name: "Labial Mate", visitors: 450 },
-    { name: "Base HD", visitors: 320 },
-    { name: "Serum Facial", visitors: 210 },
-    { name: "Rubor Compacto", visitors: 160 },
-    { name: "Delineador Líquido", visitors: 120 },
-  ];
+    return { mes: mesNombre.slice(0, 3), entradas, salidas };
+  });
+
+  const hoy = new Date();
+  const hoyStr = hoy.toISOString().split("T")[0]; // YYYY-MM-DD
+
+  const ultimaEntrada =
+    movimientos
+      .filter((mov) => mov.tipo === "entrada")
+      .sort(
+        (a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime()
+      )[0]?.fecha || "Sin datos";
+
+  const ventasHoy = movimientos
+    .filter((mov) => mov.tipo === "salida" && mov.fecha.startsWith(hoyStr))
+    .reduce((acc, mov) => acc + mov.cantidad * mov.valor, 0);
+
+  const ingresosMes = movimientos
+    .filter((mov) => {
+      const fecha = new Date(mov.fecha);
+      return (
+        mov.tipo === "salida" &&
+        fecha.getMonth() === hoy.getMonth() &&
+        fecha.getFullYear() === hoy.getFullYear()
+      );
+    })
+    .reduce((acc, mov) => acc + mov.cantidad * mov.valor, 0);
+
+
+
+  const productosMasVendidos = Object.entries(
+    movimientos
+      .filter((m) => m.tipo === "salida")
+      .reduce((acc, mov) => {
+        const nombreProducto = mov.producto?.nombre || "Desconocido";
+        acc[nombreProducto] = (acc[nombreProducto] || 0) + mov.cantidad;
+        return acc;
+      }, {} as Record<string, number>)
+  )
+    .map(([name, visitors]) => ({ name, visitors }))
+    .sort((a, b) => b.visitors - a.visitors)
+    .slice(0, 5);
 
   return (
     <main className="p-4 sm:p-6 md:p-8 max-w-screen-xl mx-auto">
@@ -178,34 +230,35 @@ const [productos, setProductos] = useState([
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 mb-10">
         <InfoCard
           title="Total de productos"
-          value="120"
+          value={totalProductos.toString()}
           color="text-blue-600"
         />
         <InfoCard
           title="Stock bajo"
-          value="5"
+          value={productosStockBajo.length.toString()}
           color="text-red-500"
           onClick={() => setModalStockBajoAbierto(true)}
         />
 
         <InfoCard
           title="Última entrada"
-          value="10/05/2025"
+          value={ultimaEntrada}
           color="text-green-600"
         />
         <InfoCard
           title="Ventas del día"
-          value="C$ 2,340"
+          value={`C$ ${ventasHoy.toLocaleString()}`}
           color="text-purple-600"
         />
         <InfoCard
           title="Ingresos del mes"
-          value="C$ 18,200"
+          value={`C$ ${ingresosMes.toLocaleString()}`}
           color="text-emerald-600"
         />
+
         <InfoCard
           title="Productos más vendidos"
-          value="Labial Mate, Serum Facial, Base HD"
+          value={productosMasVendidos.map((p) => p.name).join(", ")}
           color="text-orange-500 text-sm"
         />
       </div>
@@ -357,7 +410,17 @@ const [productos, setProductos] = useState([
   );
 }
 
-function InfoCard({ title, value, color, onClick }: { title: string; value: string; color: string; onClick?: () => void }) {
+function InfoCard({
+  title,
+  value,
+  color,
+  onClick,
+}: {
+  title: string;
+  value: string;
+  color: string;
+  onClick?: () => void;
+}) {
   return (
     <motion.div
       className="bg-white shadow-md rounded-xl p-4 md:p-6 hover:shadow-lg transition min-w-0 cursor-pointer"
@@ -367,10 +430,14 @@ function InfoCard({ title, value, color, onClick }: { title: string; value: stri
       transition={{ duration: 0.4 }}
       onClick={onClick}
     >
-      <h3 className="text-sm md:text-base font-semibold mb-2 text-gray-600 break-words whitespace-normal">{title}</h3>
-      <p className={`text-2xl md:text-3xl font-bold ${color} break-words whitespace-normal`}>{value}</p>
+      <h3 className="text-sm md:text-base font-semibold mb-2 text-gray-600 break-words whitespace-normal">
+        {title}
+      </h3>
+      <p
+        className={`text-2xl md:text-3xl font-bold ${color} break-words whitespace-normal`}
+      >
+        {value}
+      </p>
     </motion.div>
   );
 }
-
-
