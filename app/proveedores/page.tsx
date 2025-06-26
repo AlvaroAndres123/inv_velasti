@@ -797,7 +797,7 @@ export default function ProveedoresPage() {
                                 className="text-blue-500 hover:text-blue-700"
                                 title="Ver detalles"
                               >
-                                <svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                                <svg width="18" height="18" fill="none" viewBox="0 0 24 24" className="text-blue-500"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
                               </Button>
                             </TooltipTrigger>
                             <TooltipContent>
@@ -849,7 +849,7 @@ export default function ProveedoresPage() {
                       onClick={() => abrirModalDetalles(prov)}
                       title="Ver detalles"
                     >
-                      <svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                      <svg width="18" height="18" fill="none" viewBox="0 0 24 24" className="text-blue-500"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
                     </Button>
                   </div>
                 </div>
@@ -1037,15 +1037,27 @@ export default function ProveedoresPage() {
                 <div>
                   <div className="font-semibold text-blue-700 mb-2">Productos vinculados</div>
                   {productos.filter((p: Producto) => (typeof p.proveedor === 'object' ? p.proveedor?.nombre : p.proveedor) === proveedorDetalle.nombre || p.proveedorId === proveedorDetalle.id).length > 0 ? (
-                    <div className="space-y-2 max-h-60 overflow-y-auto">
-                      {productos.filter((p: Producto) => (typeof p.proveedor === 'object' ? p.proveedor?.nombre : p.proveedor) === proveedorDetalle.nombre || p.proveedorId === proveedorDetalle.id).map((prod: Producto, i: number) => (
-                        <div key={prod.id || i} className="flex flex-col md:flex-row md:items-center md:gap-4 border-b pb-2 last:border-b-0 last:pb-0">
-                          <span className="font-medium text-gray-800">{prod.nombre}</span>
-                          <span className="text-xs text-gray-500">Stock: {prod.stock}</span>
-                          <span className="text-xs text-gray-500">Precio: C$ {prod.precio}</span>
-                          <span className="text-xs text-gray-500">Categoría: {typeof prod.categoria === 'object' ? prod.categoria?.nombre : prod.categoria}</span>
-                        </div>
-                      ))}
+                    <div className="overflow-x-auto max-h-60">
+                      <table className="min-w-full text-sm text-left text-gray-700 bg-white border-separate border-spacing-0">
+                        <thead className="bg-gray-100 text-xs uppercase text-gray-500 sticky top-0">
+                          <tr>
+                            <th className="px-4 py-3">Nombre</th>
+                            <th className="px-4 py-3">Categoría</th>
+                            <th className="px-4 py-3">Precio</th>
+                            <th className="px-4 py-3">Stock</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {productos.filter((p: Producto) => (typeof p.proveedor === 'object' ? p.proveedor?.nombre : p.proveedor) === proveedorDetalle.nombre || p.proveedorId === proveedorDetalle.id).map((prod: Producto, i: number) => (
+                            <tr key={prod.id || i} className="border-b last:border-b-0">
+                              <td className="px-4 py-2 font-medium text-gray-800">{prod.nombre}</td>
+                              <td className="px-4 py-2">{typeof prod.categoria === 'object' ? prod.categoria?.nombre : prod.categoria}</td>
+                              <td className="px-4 py-2">C$ {prod.precio}</td>
+                              <td className="px-4 py-2">{prod.stock}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
                     </div>
                   ) : (
                     <div className="text-gray-500 text-sm">No hay productos vinculados a este proveedor.</div>
