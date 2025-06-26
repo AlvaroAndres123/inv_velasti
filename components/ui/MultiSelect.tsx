@@ -70,7 +70,7 @@ export function MultiSelect({ options, value, onChange, placeholder = "Seleccion
         />
       </div>
       {open && (
-        <div className="absolute left-0 right-0 mt-1 bg-white border rounded-md shadow-lg z-20 max-h-48 overflow-y-auto animate-fade-in">
+        <div className="absolute left-0 right-0 mt-1 bg-white border rounded-md shadow-lg z-[9999] max-h-48 overflow-y-auto animate-fade-in">
           {filtered.length === 0 ? (
             <div className="px-3 py-2 text-gray-400 text-sm">Sin opciones</div>
           ) : (
