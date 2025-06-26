@@ -26,6 +26,11 @@ import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { useMediaQuery } from "@/lib/utils";
 import { MultiSelect } from "@/components/ui/MultiSelect";
+import * as XLSX from "xlsx";
+import { saveAs } from "file-saver";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
+import ExcelJS from "exceljs";
 
 interface Producto {
   id: number;
@@ -181,6 +186,155 @@ function useDatosAuxiliares() {
   }, []);
 
   return { categorias, proveedores, cargando };
+}
+
+// Función para generar nombre de archivo exportado
+function nombreArchivoExportacion(tipo: 'Seleccionados' | 'Filtrados', extension: 'xlsx' | 'pdf') {
+  const fecha = new Date();
+  const yyyy = fecha.getFullYear();
+  const mm = String(fecha.getMonth() + 1).padStart(2, '0');
+  const dd = String(fecha.getDate()).padStart(2, '0');
+  return `AlmaSoft_Productos_${yyyy}${mm}${dd}_${tipo}.${extension}`;
+}
+
+// Función para exportar productos a Excel
+function exportarProductosAExcel(productosExportar: Producto[], nombreArchivo: string) {
+  if (!productosExportar.length) return;
+  const workbook = new ExcelJS.Workbook();
+  const worksheet = workbook.addWorksheet("Productos");
+  // LOGO: 'Productos' centrado arriba
+  worksheet.mergeCells("A1:F1");
+  const logoCell = worksheet.getCell("A1");
+  logoCell.value = "Productos";
+  logoCell.font = { name: "Calibri", bold: true, size: 22, color: { argb: "FF2196F3" } };
+  logoCell.alignment = { horizontal: "center", vertical: "middle" };
+  // Espacio entre logo y encabezado
+  worksheet.addRow([]);
+  // Definir columnas
+  worksheet.columns = [
+    { header: "Nombre", key: "nombre", width: 24 },
+    { header: "Descripción", key: "descripcion", width: 40 },
+    { header: "Categoría", key: "categoria", width: 18 },
+    { header: "Proveedor", key: "proveedor", width: 18 },
+    { header: "Precio", key: "precio", width: 10 },
+    { header: "Stock", key: "stock", width: 8 },
+  ];
+  // Agregar filas
+  productosExportar.forEach((p) => {
+    worksheet.addRow({
+      nombre: p.nombre,
+      descripcion: p.descripcion,
+      categoria: p.categoria?.nombre || "",
+      proveedor: p.proveedor?.nombre || "",
+      precio: p.precio,
+      stock: p.stock,
+    });
+  });
+  // Estilos de encabezado
+  const headerRowIdx = 3;
+  worksheet.getRow(headerRowIdx).eachCell((cell) => {
+    cell.font = { bold: true, color: { argb: "FFFFFFFF" } };
+    cell.fill = {
+      type: "pattern",
+      pattern: "solid",
+      fgColor: { argb: "FF2196F3" },
+    };
+    cell.alignment = { horizontal: "center" };
+    cell.border = {
+      top: { style: "thin", color: { argb: "FFAAAAAA" } },
+      bottom: { style: "thin", color: { argb: "FFAAAAAA" } },
+      left: { style: "thin", color: { argb: "FFAAAAAA" } },
+      right: { style: "thin", color: { argb: "FFAAAAAA" } },
+    };
+  });
+  // Bordes para todas las celdas
+  worksheet.eachRow((row, rowNumber) => {
+    if (rowNumber < headerRowIdx) return; // No bordes en logo ni fila vacía
+    row.eachCell((cell) => {
+      cell.border = {
+        top: { style: "thin", color: { argb: "FFAAAAAA" } },
+        bottom: { style: "thin", color: { argb: "FFAAAAAA" } },
+        left: { style: "thin", color: { argb: "FFAAAAAA" } },
+        right: { style: "thin", color: { argb: "FFAAAAAA" } },
+      };
+      cell.font = cell.font || { name: "Calibri", size: 11 };
+    });
+  });
+  // Autofiltro
+  const colCount = worksheet.getRow(headerRowIdx).cellCount;
+  const lastCol = String.fromCharCode(64 + colCount);
+  worksheet.autoFilter = {
+    from: `A${headerRowIdx}`,
+    to: `${lastCol}${headerRowIdx}`,
+  };
+  // Pie de página
+  const fecha = new Date().toLocaleDateString();
+  const pieRow = worksheet.addRow([]);
+  pieRow.getCell(1).value = `Exportado desde AlmaSoft - Fecha: ${fecha}`;
+  worksheet.mergeCells(`A${pieRow.number}:F${pieRow.number}`);
+  pieRow.getCell(1).alignment = { horizontal: "center" };
+  pieRow.getCell(1).font = { color: { argb: "FF888888" }, italic: true, size: 11 };
+  // Descargar archivo
+  workbook.xlsx.writeBuffer().then((buffer) => {
+    const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+    saveAs(blob, nombreArchivo);
+  });
+}
+
+// Función para exportar productos a PDF
+function exportarProductosAPDF(productosExportar: Producto[], nombreArchivo: string) {
+  if (!productosExportar.length) return;
+  const doc = new jsPDF();
+  // Título grande y azul
+  doc.setFontSize(22);
+  doc.setTextColor(33, 150, 243);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Productos', doc.internal.pageSize.getWidth() / 2, 22, { align: 'center' });
+  // Línea divisoria
+  doc.setDrawColor(33, 150, 243);
+  doc.setLineWidth(1);
+  doc.line(20, 28, doc.internal.pageSize.getWidth() - 20, 28);
+  // Tabla
+  const columns = [
+    { header: "Nombre", dataKey: "nombre" },
+    { header: "Descripción", dataKey: "descripcion" },
+    { header: "Categoría", dataKey: "categoria" },
+    { header: "Proveedor", dataKey: "proveedor" },
+    { header: "Precio", dataKey: "precio" },
+    { header: "Stock", dataKey: "stock" },
+  ] as const;
+  const data = productosExportar.map((p) => ({
+    nombre: p.nombre,
+    descripcion: p.descripcion,
+    categoria: p.categoria?.nombre || "",
+    proveedor: p.proveedor?.nombre || "",
+    precio: p.precio,
+    stock: p.stock,
+  }));
+  autoTable(doc, {
+    startY: 34,
+    head: [columns.map(col => col.header)],
+    body: data.map(row => columns.map(col => (row as any)[col.dataKey])),
+    styles: { fontSize: 10, cellPadding: 3, font: 'helvetica', textColor: [33, 37, 41] },
+    headStyles: { fillColor: [33, 150, 243], textColor: 255, fontStyle: 'bold', fontSize: 11 },
+    alternateRowStyles: { fillColor: [240, 248, 255] },
+    tableLineColor: [180, 180, 180],
+    tableLineWidth: 0.3,
+    margin: { left: 14, right: 14 },
+    tableWidth: 'auto',
+  });
+  // Pie de página
+  const fecha = new Date().toLocaleDateString();
+  doc.setFontSize(10);
+  doc.setTextColor(150, 150, 150);
+  doc.setFont('helvetica', 'italic');
+  doc.text(
+    `Exportado desde AlmaSoft - Fecha: ${fecha}`,
+    doc.internal.pageSize.getWidth() / 2,
+    doc.internal.pageSize.getHeight() - 10,
+    { align: 'center' }
+  );
+  doc.save(nombreArchivo);
 }
 
 export default function ProductosPage() {
@@ -630,6 +784,32 @@ export default function ProductosPage() {
             className="md:hidden"
           >
             {filtrosAbiertos ? 'Ocultar' : 'Mostrar'} filtros
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => exportarProductosAExcel(
+              seleccionados.length > 0 ? productos.filter(p => seleccionados.includes(p.id)) : productosFiltrados,
+              nombreArchivoExportacion(seleccionados.length > 0 ? 'Seleccionados' : 'Filtrados', 'xlsx')
+            )}
+            className="ml-2 flex items-center gap-1"
+            title={seleccionados.length > 0 ? "Exportar seleccionados a Excel" : "Exportar productos filtrados a Excel"}
+          >
+            <svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path d="M16 16v2a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M7 9h6M7 13h4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M20 7v6m0 0l2-2m-2 2l-2-2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            Exportar Excel
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => exportarProductosAPDF(
+              seleccionados.length > 0 ? productos.filter(p => seleccionados.includes(p.id)) : productosFiltrados,
+              nombreArchivoExportacion(seleccionados.length > 0 ? 'Seleccionados' : 'Filtrados', 'pdf')
+            )}
+            className="ml-2 flex items-center gap-1"
+            title={seleccionados.length > 0 ? "Exportar seleccionados a PDF" : "Exportar productos filtrados a PDF"}
+          >
+            <svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path d="M16 16v2a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M7 9h6M7 13h4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M20 7v6m0 0l2-2m-2 2l-2-2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            Exportar PDF
           </Button>
         </div>
         {/* Filtros colapsables en móvil */}
