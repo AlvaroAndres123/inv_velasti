@@ -462,7 +462,6 @@ export default function ProveedoresPage() {
               aria-label="Vista tabla"
               className={vista === 'tabla' ? 'bg-blue-600 text-white' : ''}
               onClick={() => setVista('tabla')}
-              disabled={isMobile}
             >
               <Table size={20} />
             </Button>
