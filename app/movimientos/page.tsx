@@ -260,7 +260,11 @@ const movimiento = {
     const producto = productos.find((p) => p.id === mov.productoId);
     const coincideProducto = filtroProducto === "" || (producto?.nombre?.toLowerCase() || "").includes(filtroProducto.toLowerCase());
     const coincideMotivo = filtroMotivo === "" || mov.motivo.toLowerCase().includes(filtroMotivo.toLowerCase());
-    const coincideTipo = filtroTipo === "todos" ? true : mov.tipo === filtroTipo;
+    const coincideTipo = filtroTipo === "todos"
+      ? !mov.anulado
+      : filtroTipo === "anulados"
+        ? mov.anulado
+        : mov.tipo === filtroTipo && !mov.anulado;
     // Convertir fecha del movimiento (DD/MM/YYYY) a YYYY-MM-DD para comparar
     function toISO(fechaStr: string) {
       if (!fechaStr) return "";
@@ -519,6 +523,7 @@ const movimiento = {
 
   // Función para abrir modal de detalles
   const abrirModalDetalles = (mov: Movimiento) => {
+    setMovimientoAAnular(mov); // Asegura que el movimiento esté disponible para el modal
     const prod = productos.find(p => p.id === mov.productoId);
     setProductoDetalle(prod || null);
     setModalDetalles(true);
@@ -723,6 +728,7 @@ const movimiento = {
                     <SelectItem value="todos">Todos</SelectItem>
                     <SelectItem value="entrada">Entrada</SelectItem>
                     <SelectItem value="salida">Salida</SelectItem>
+                    <SelectItem value="anulados">Anulados</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -808,8 +814,17 @@ const movimiento = {
                             <TooltipContent>Ver detalles</TooltipContent>
                           </Tooltip>
                         </TooltipProvider>
-                        {mov.anulado ? (
-                          <span className="px-2 py-0.5 rounded-full bg-gray-200 text-gray-500 text-xs font-semibold ml-2">Anulado</span>
+                        {mov.anulado && filtroTipo === "anulados" ? (
+                          <TooltipProvider delayDuration={300}>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <span className="inline-flex items-center justify-center rounded-full bg-gray-200 text-red-500 px-2 py-1 text-xs font-semibold ml-2">
+                                  <Ban size={16} />
+                                </span>
+                              </TooltipTrigger>
+                              <TooltipContent>Movimiento anulado</TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
                         ) : (
                           <TooltipProvider delayDuration={300}>
                             <Tooltip>
@@ -966,8 +981,17 @@ const movimiento = {
                                 <TooltipContent>Ver detalles</TooltipContent>
                               </Tooltip>
                             </TooltipProvider>
-                            {mov.anulado ? (
-                              <span className="px-2 py-0.5 rounded-full bg-gray-200 text-gray-500 text-xs font-semibold">Anulado</span>
+                            {mov.anulado && filtroTipo === "anulados" ? (
+                              <TooltipProvider delayDuration={300}>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <span className="inline-flex items-center justify-center rounded-full bg-gray-200 text-red-500 px-2 py-1 text-xs font-semibold ml-2">
+                                      <Ban size={16} />
+                                    </span>
+                                  </TooltipTrigger>
+                                  <TooltipContent>Movimiento anulado</TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
                             ) : (
                               <TooltipProvider delayDuration={300}>
                                 <Tooltip>
@@ -975,7 +999,7 @@ const movimiento = {
                                     <Button
                                       variant="outline"
                                       size="icon"
-                                      className="border border-red-200 text-red-500 bg-white hover:bg-red-50 hover:text-red-600 focus:ring-red-200 rounded-md"
+                                      className="border border-red-200 text-red-500 bg-white hover:bg-red-50 hover:text-red-600 focus:ring-red-200 rounded-md ml-2"
                                       onClick={() => abrirModalAnular(mov)}
                                       aria-label="Anular movimiento"
                                     >
@@ -1387,28 +1411,66 @@ const movimiento = {
           </DialogContent>
         </Dialog>
 
-        {/* Modal de detalles de producto */}
+        {/* Modal de detalles de movimiento */}
         <Dialog open={modalDetalles} onOpenChange={setModalDetalles}>
           <DialogContent className="max-w-md">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2 text-blue-600">
-                <Eye size={22} /> Detalles del producto
+                <Eye size={22} /> Detalles del movimiento
               </DialogTitle>
             </DialogHeader>
-            {productoDetalle ? (
-              <div className="flex flex-col gap-2">
-                {productoDetalle.imagen && (
-                  <img src={productoDetalle.imagen} alt={productoDetalle.nombre} className="w-24 h-24 object-cover rounded border mx-auto mb-2" />
-                )}
-                <div><span className="font-semibold">Nombre:</span> {productoDetalle.nombre}</div>
-                <div><span className="font-semibold">Descripción:</span> {productoDetalle.descripcion}</div>
-                <div><span className="font-semibold">Categoría:</span> {typeof productoDetalle.categoria === 'object' ? productoDetalle.categoria?.nombre : productoDetalle.categoria}</div>
-                <div><span className="font-semibold">Proveedor:</span> {typeof productoDetalle.proveedor === 'object' ? productoDetalle.proveedor?.nombre : productoDetalle.proveedor}</div>
-                <div><span className="font-semibold">Precio:</span> C$ {productoDetalle.precio}</div>
-                <div><span className="font-semibold">Stock actual:</span> {productoDetalle.stock}</div>
+            {movimientoAAnular ? (
+              <div className="flex flex-col gap-4">
+                <div className="flex items-center gap-4 border-b pb-3 mb-2">
+                  {(productoDetalle?.imagen || movimientoAAnular.producto?.imagen) ? (
+                    <img src={productoDetalle?.imagen || movimientoAAnular.producto?.imagen} alt={productoDetalle?.nombre || movimientoAAnular.producto?.nombre} className="w-16 h-16 object-cover rounded border bg-gray-50" />
+                  ) : (
+                    <div className="w-16 h-16 bg-gray-100 rounded flex items-center justify-center border">
+                      <Package className="text-gray-400" size={28} />
+                    </div>
+                  )}
+                  <div className="flex flex-col min-w-0">
+                    <span className="font-bold text-lg text-gray-800 truncate">{productoDetalle?.nombre || movimientoAAnular.producto?.nombre}</span>
+                    <span className="text-xs text-gray-500">{typeof (productoDetalle?.categoria || movimientoAAnular.producto?.categoria) === 'object' ? (productoDetalle?.categoria as any)?.nombre || (movimientoAAnular.producto?.categoria as any)?.nombre : (productoDetalle?.categoria || movimientoAAnular.producto?.categoria)}</span>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+                  <div className="text-gray-500">Tipo de movimiento:</div>
+                  <div className="font-medium flex items-center gap-1">
+                    {movimientoAAnular.tipo === 'entrada' ? <BadgeCheck size={16} className="text-green-500" /> : <AlertTriangle size={16} className="text-red-500" />} {movimientoAAnular.tipo.charAt(0).toUpperCase() + movimientoAAnular.tipo.slice(1)}
+                  </div>
+                  <div className="text-gray-500">Cantidad:</div>
+                  <div className="font-medium">{movimientoAAnular.cantidad}</div>
+                  <div className="text-gray-500">Motivo:</div>
+                  <div className="font-medium">{movimientoAAnular.motivo}</div>
+                  <div className="text-gray-500">Fecha del movimiento:</div>
+                  <div className="font-medium">{formatearFecha(movimientoAAnular.fecha)}</div>
+                  <div className="text-gray-500">Proveedor:</div>
+                  <div className="font-medium">{typeof (productoDetalle?.proveedor || movimientoAAnular.producto?.proveedor) === 'object' ? (productoDetalle?.proveedor as any)?.nombre || (movimientoAAnular.producto?.proveedor as any)?.nombre : (productoDetalle?.proveedor || movimientoAAnular.producto?.proveedor)}</div>
+                  <div className="text-gray-500">Precio unitario:</div>
+                  <div className="font-medium">C$ {productoDetalle?.precio || movimientoAAnular.producto?.precio}</div>
+                  <div className="text-gray-500">Stock actual:</div>
+                  <div className="font-medium">{productoDetalle?.stock || movimientoAAnular.producto?.stock}</div>
+                  <div className="text-gray-500">Estado:</div>
+                  <div className="font-medium flex items-center gap-1">
+                    {movimientoAAnular.anulado ? (
+                      <span className="flex items-center gap-1 text-red-500 font-semibold">Anulado <Ban size={16} /></span>
+                    ) : (
+                      <span className="flex items-center gap-1 text-green-600 font-semibold">Vigente <BadgeCheck size={16} /></span>
+                    )}
+                  </div>
+                  {movimientoAAnular.anulado && (
+                    <>
+                      <div className="text-gray-500">Motivo de anulación:</div>
+                      <div className="font-medium text-red-500">{movimientoAAnular.motivo_anulacion}</div>
+                      <div className="text-gray-500">Fecha de anulación:</div>
+                      <div className="font-medium text-red-500">{formatearFecha(movimientoAAnular.fecha_anulacion)}</div>
+                    </>
+                  )}
+                </div>
               </div>
             ) : (
-              <div className="text-gray-500">No se encontró información del producto.</div>
+              <div className="text-gray-500">No se encontró información del movimiento.</div>
             )}
           </DialogContent>
         </Dialog>
