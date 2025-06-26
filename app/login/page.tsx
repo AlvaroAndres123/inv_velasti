@@ -7,29 +7,43 @@ import { Button } from '@/components/ui/button';
 
 export default function LoginPage() {
   const router = useRouter();
-  const [usuario, setUsuario] = useState('');
-  const [clave, setClave] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
-  
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     const user = localStorage.getItem('usuario');
-    if (user) router.replace('/productos');
+    if (user) router.replace('/');
   }, [router]);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    setLoading(true);
+    setError('');
 
-    // Usuario de prueba
-    if (usuario === 'jesua123' && clave === '1234') {
-      const usuarioDemo = {
-        usuario,
-        nombre: 'Jesua Casco',
-      };
-      localStorage.setItem('usuario', JSON.stringify(usuarioDemo));
-      router.push('/');
-    } else {
-      setError('Usuario o contraseña incorrectos');
+    try {
+      const response = await fetch('/api/auth', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        localStorage.setItem('usuario', JSON.stringify(data.usuario));
+        router.push('/');
+      } else {
+        setError(data.error || 'Error al iniciar sesión');
+      }
+    } catch (err) {
+      setError('Error de conexión');
+      console.error('Error en login:', err);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -38,21 +52,23 @@ export default function LoginPage() {
       <form onSubmit={handleLogin} className="bg-white p-6 rounded shadow w-full max-w-sm space-y-4">
         <h2 className="text-2xl font-bold text-center">Iniciar sesión</h2>
         <Input
-          type="text"
-          placeholder="Usuario"
-          value={usuario}
-          onChange={(e) => setUsuario(e.target.value)}
+          type="email"
+          placeholder="Email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
           required
         />
         <Input
           type="password"
           placeholder="Contraseña"
-          value={clave}
-          onChange={(e) => setClave(e.target.value)}
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
           required
         />
         {error && <p className="text-red-500 text-sm text-center">{error}</p>}
-        <Button type="submit" className="w-full">Ingresar</Button>
+        <Button type="submit" className="w-full" disabled={loading}>
+          {loading ? 'Iniciando sesión...' : 'Ingresar'}
+        </Button>
       </form>
     </div>
   );
