@@ -109,6 +109,11 @@ export default function MovimientosPage() {
   const [paginaActual, setPaginaActual] = useState(1);
   const [movimientosPorPagina, setMovimientosPorPagina] = useState(10);
   const opcionesPorPagina = [5, 10, 20, 30, 50];
+  // NUEVOS ESTADOS DE FILTRO
+  const [filtroProducto, setFiltroProducto] = useState("");
+  const [filtroMotivo, setFiltroMotivo] = useState("");
+  const [filtroCategoria, setFiltroCategoria] = useState("todas");
+  const [filtroMarca, setFiltroMarca] = useState("todas");
 
   // useEffect para cargar productos
   useEffect(() => {
@@ -213,14 +218,14 @@ const movimiento = {
 
 
   const movimientosFiltrados = movimientos.filter((mov) => {
-   const coincideTexto =
-  (mov.producto?.nombre?.toLowerCase() || "").includes(filtroTextoGeneral.toLowerCase()) ||
-  mov.motivo.toLowerCase().includes(filtroTextoGeneral.toLowerCase());
-
-    const coincideTipo =
-      filtroTipo === "todos" ? true : mov.tipo === filtroTipo;
+    const producto = productos.find((p) => p.id === mov.productoId);
+    const coincideProducto = filtroProducto === "" || (producto?.nombre?.toLowerCase() || "").includes(filtroProducto.toLowerCase());
+    const coincideMotivo = filtroMotivo === "" || mov.motivo.toLowerCase().includes(filtroMotivo.toLowerCase());
+    const coincideTipo = filtroTipo === "todos" ? true : mov.tipo === filtroTipo;
     const coincideFecha = filtroFecha ? mov.fecha === filtroFecha : true;
-    return coincideTexto && coincideTipo && coincideFecha;
+    const coincideCategoria = filtroCategoria === "todas" ? true : (producto?.categoria === filtroCategoria);
+    const coincideMarca = filtroMarca === "todas" ? true : (producto?.proveedor === filtroMarca);
+    return coincideProducto && coincideMotivo && coincideTipo && coincideFecha && coincideCategoria && coincideMarca;
   });
 
   // Resumen de movimientos
@@ -417,7 +422,10 @@ const movimiento = {
               variant="ghost"
               size="sm"
               onClick={() => {
-                setFiltroTextoGeneral("");
+                setFiltroProducto("");
+                setFiltroMotivo("");
+                setFiltroCategoria("todas");
+                setFiltroMarca("todas");
                 setFiltroTipo("todos");
                 setFiltroFecha("");
               }}
@@ -427,22 +435,62 @@ const movimiento = {
             </Button>
           </div>
           {/* Fila principal de filtros alineados */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-            {/* Buscar */}
-            <div className="w-full flex flex-col relative">
-              <label className="text-sm text-gray-700 mb-1 font-medium opacity-0 select-none">.</label>
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-2 w-full mb-4">
+            {/* Buscar producto */}
+            <div className="flex flex-col relative">
+              <label className="text-sm text-gray-700 mb-1 font-medium">Producto</label>
               <span className="absolute left-3 top-[70%] -translate-y-1/2 text-blue-400 pointer-events-none">
                 <Search size={20} />
               </span>
               <Input
-                placeholder="Buscar por producto o motivo"
-                value={filtroTextoGeneral}
-                onChange={(e) => setFiltroTextoGeneral(e.target.value)}
+                placeholder="Buscar producto"
+                value={filtroProducto}
+                onChange={(e) => setFiltroProducto(e.target.value)}
                 className="pl-10 rounded-md border border-blue-200 focus:border-blue-400 focus:ring-blue-300 bg-white h-11 text-base w-full"
               />
             </div>
-            {/* Tipo */}
-            <div className="w-full flex flex-col">
+            {/* Buscar motivo */}
+            <div className="flex flex-col relative">
+              <label className="text-sm text-gray-700 mb-1 font-medium">Motivo</label>
+              <Input
+                placeholder="Buscar motivo"
+                value={filtroMotivo}
+                onChange={(e) => setFiltroMotivo(e.target.value)}
+                className="rounded-md border border-blue-200 focus:border-blue-400 focus:ring-blue-300 bg-white h-11 text-base w-full"
+              />
+            </div>
+            {/* Filtro por categoría */}
+            <div className="flex flex-col">
+              <label className="text-sm text-gray-700 mb-1 font-medium">Categoría</label>
+              <Select value={filtroCategoria} onValueChange={setFiltroCategoria}>
+                <SelectTrigger className="rounded-md border border-blue-200 focus:border-blue-400 focus:ring-blue-300 bg-white h-11 text-base">
+                  <SelectValue placeholder="Filtrar por categoría" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todas">Todas</SelectItem>
+                  {categorias.map(cat => (
+                    <SelectItem key={cat.id} value={cat.nombre}>{cat.nombre}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {/* Filtro por marca/proveedor */}
+            <div className="flex flex-col">
+              <label className="text-sm text-gray-700 mb-1 font-medium">Marca/Proveedor</label>
+              <Select value={filtroMarca} onValueChange={setFiltroMarca}>
+                <SelectTrigger className="rounded-md border border-blue-200 focus:border-blue-400 focus:ring-blue-300 bg-white h-11 text-base">
+                  <SelectValue placeholder="Filtrar por marca" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todas">Todas</SelectItem>
+                  {proveedores.map(prov => (
+                    <SelectItem key={prov.id} value={prov.nombre}>{prov.nombre}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {/* Filtro por tipo (entrada/salida) */}
+            <div className="flex flex-col">
               <label className="text-sm text-gray-700 mb-1 font-medium">Tipo</label>
               <Select value={filtroTipo} onValueChange={setFiltroTipo}>
                 <SelectTrigger className="rounded-md border border-blue-200 focus:border-blue-400 focus:ring-blue-300 bg-white h-11 text-base">
@@ -455,8 +503,10 @@ const movimiento = {
                 </SelectContent>
               </Select>
             </div>
-            {/* Fecha */}
-            <div className="w-full flex flex-col">
+          </div>
+          {/* Fila de filtro de fecha debajo */}
+          <div className="w-full flex flex-col md:flex-row gap-2 mb-4">
+            <div className="flex flex-col w-full md:w-1/3">
               <label className="text-sm text-gray-700 mb-1 font-medium">Fecha</label>
               <div className="relative w-full">
                 <Input
