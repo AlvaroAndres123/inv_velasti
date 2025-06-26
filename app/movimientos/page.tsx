@@ -266,24 +266,22 @@ const movimiento = {
         ? mov.anulado
         : mov.tipo === filtroTipo && !mov.anulado;
     // Convertir fecha del movimiento (DD/MM/YYYY) a YYYY-MM-DD para comparar
-    function toISO(fechaStr: string) {
+    function normalizarFecha(fechaStr: string) {
       if (!fechaStr) return "";
-      const clean = fechaStr.trim();
-      // Si viene en formato DD/MM/YYYY, convertir
-      if (/^\d{2}\/\d{2}\/\d{4}$/.test(clean)) {
-        const [d, m, y] = clean.split("/");
+      // Si viene en formato DD/MM/YYYY, convertir a YYYY-MM-DD
+      if (/^\d{2}\/\d{2}\/\d{4}$/.test(fechaStr)) {
+        const [d, m, y] = fechaStr.split("/");
         return `${y}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`;
       }
-      // Si ya viene en formato YYYY-MM-DD, devolver igual
-      return clean;
+      // Si viene en formato YYYY-MM-DD o incluye hora, tomar solo los primeros 10 caracteres
+      return fechaStr.slice(0, 10);
     }
-    const movFechaISO = toISO(mov.fecha);
+    const movFechaNorm = normalizarFecha(mov.fecha);
     let coincideFecha = true;
     if (filtroFechaInicio && filtroFechaFin) {
-      coincideFecha = movFechaISO >= filtroFechaInicio && movFechaISO <= filtroFechaFin;
+      coincideFecha = movFechaNorm >= filtroFechaInicio && movFechaNorm <= filtroFechaFin;
     } else if (filtroFecha) {
-      // Normalizo ambos a YYYY-MM-DD para comparar correctamente
-      coincideFecha = movFechaISO.slice(0, 10) === filtroFecha.slice(0, 10);
+      coincideFecha = movFechaNorm === filtroFecha;
     }
     const coincideCategoria = filtroCategoria === "todas" ? true : (producto?.categoria === filtroCategoria);
     const coincideMarca = filtroMarca === "todas" ? true : (producto?.proveedor === filtroMarca);
