@@ -37,26 +37,32 @@ export async function PUT(req: NextRequest) {
     return NextResponse.json({ error: 'ID inválido' }, { status: 400 });
   }
   const body = await req.json();
-  const { nombre, descripcion, categoria, proveedor, precio, stock, imagen } =
+  const { nombre, descripcion, categoria, proveedor, precio, stock, imagen, destacado } =
     body;
 
   try {
-  const actualizado = await prisma.producto.update({
-  where: { id },
-  data: {
-    nombre,
-    descripcion,
-    precio,
-    stock,
-    imagen,
-    categoriaId: categoria,
-    proveedorId: proveedor,
-  },
-  include: {
-    categoria: true,
-    proveedor: true,
-  },
-});
+    const data: any = {
+      nombre,
+      descripcion,
+      precio,
+      stock,
+      imagen,
+      ...(typeof destacado === 'boolean' ? { destacado } : {}),
+    };
+    if (typeof categoria !== 'undefined') {
+      data.categoria = { connect: { id: categoria } };
+    }
+    if (typeof proveedor !== 'undefined') {
+      data.proveedor = { connect: { id: proveedor } };
+    }
+    const actualizado = await prisma.producto.update({
+      where: { id },
+      data,
+      include: {
+        categoria: true,
+        proveedor: true,
+      },
+    });
 
     return NextResponse.json(actualizado);
   } catch (error) {

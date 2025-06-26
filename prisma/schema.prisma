@@ -51,6 +51,7 @@ model Producto {
   proveedor   Proveedor   @relation(fields: [proveedorId], references: [id])
   movimientos Movimiento[]
   creadoEn    DateTime    @default(now())
+  destacado   Boolean     @default(false)
 }
 
 model Movimiento {

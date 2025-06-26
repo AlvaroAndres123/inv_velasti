@@ -18,7 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, Pencil, Trash2, BadgeCheck, AlertTriangle, Package, PlusCircle, Search, Filter, X, LayoutGrid, Table } from "lucide-react";
+import { Plus, Pencil, Trash2, BadgeCheck, AlertTriangle, Package, PlusCircle, Search, Filter, X, LayoutGrid, Table, Star } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { useToast, ToastContainer } from "@/components/ui/toast";
@@ -38,6 +38,7 @@ interface Producto {
   imagen?: string;
   categoria?: { nombre: string };
   proveedor?: { nombre: string };
+  destacado: boolean;
 }
 
 interface Categoria {
@@ -250,6 +251,9 @@ export default function ProductosPage() {
     setCategoriasLocales(categorias);
   }, [categorias]);
 
+  // Estado para filtro de destacados
+  const [soloDestacados, setSoloDestacados] = useState(false);
+
   // Memoización de productos filtrados y ordenados
   const productosFiltrados = useMemo(() => {
     let filtrados = productos.filter((prod) => {
@@ -272,6 +276,8 @@ export default function ProductosPage() {
       // Filtro por precio
       if (precioMin && prod.precio < parseFloat(precioMin)) return false;
       if (precioMax && prod.precio > parseFloat(precioMax)) return false;
+      // Filtro por destacado
+      if (soloDestacados && !prod.destacado) return false;
       return true;
     });
     // Orden
@@ -285,7 +291,7 @@ export default function ProductosPage() {
       return 0;
     });
     return filtrados;
-  }, [productos, busqueda, nombreExacto, categoriaFiltro, proveedorFiltro, stockFiltro, precioMin, precioMax, orden, asc]);
+  }, [productos, busqueda, nombreExacto, categoriaFiltro, proveedorFiltro, stockFiltro, precioMin, precioMax, orden, asc, soloDestacados]);
 
   // Funciones de manejo
   const abrirModalAgregar = useCallback(() => {
@@ -325,6 +331,7 @@ export default function ProductosPage() {
         precio: parseFloat(formData.get("precio")?.toString() || "0"),
         stock: parseInt(formData.get("stock")?.toString() || "0"),
         imagen: imagenPreview || "",
+        destacado: productoActual?.destacado || false,
       };
 
       // Validación
@@ -416,7 +423,25 @@ export default function ProductosPage() {
     setAsc(true);
     setPrecioMin("");
     setPrecioMax("");
+    setSoloDestacados(false);
   }, []);
+
+  // En la función ProductosPage, agrega función para alternar destacado
+  const toggleDestacado = async (producto: Producto) => {
+    const resultado = await actualizarProducto(producto.id, {
+      destacado: !producto.destacado,
+    });
+    if (resultado.success) {
+      success(
+        !producto.destacado ? "Producto destacado" : "Destacado removido",
+        !producto.destacado
+          ? `"${producto.nombre}" ahora es destacado.`
+          : `"${producto.nombre}" ya no es destacado.`
+      );
+    } else {
+      showError("Error", resultado.error || "No se pudo actualizar el destacado");
+    }
+  };
 
   // Spinner de carga
   if (cargando) {
@@ -494,6 +519,20 @@ export default function ProductosPage() {
           <Filter className="text-blue-500" size={20} />
           <h3 className="font-semibold text-gray-700">Filtros</h3>
           <span className="ml-2 text-xs text-gray-500">{productosFiltrados.length} resultado(s)</span>
+          {/* Filtro solo destacados */}
+          <button
+            type="button"
+            onClick={() => setSoloDestacados((v) => !v)}
+            className={`ml-2 p-2 rounded-full border transition ${soloDestacados ? 'bg-yellow-100 border-yellow-300' : 'bg-white border-gray-200 hover:bg-gray-100'}`}
+            title="Mostrar solo destacados"
+          >
+            <Star
+              size={20}
+              className={soloDestacados ? 'text-yellow-400 fill-yellow-300' : 'text-gray-300'}
+              strokeWidth={2}
+              fill={soloDestacados ? '#fde047' : 'none'}
+            />
+          </button>
           <Button
             variant="ghost"
             size="sm"
@@ -650,6 +689,20 @@ export default function ProductosPage() {
                       exit={{ opacity: 0, y: 20 }}
                       className="relative bg-white rounded-2xl shadow-lg p-6 flex flex-col h-full border border-blue-50 hover:shadow-xl transition group"
                     >
+                      {/* Icono de destacado */}
+                      <button
+                        type="button"
+                        onClick={() => toggleDestacado(prod)}
+                        className="absolute top-3 left-3 z-20 p-1 rounded-full bg-white shadow-md hover:bg-yellow-100 transition"
+                        title={prod.destacado ? "Quitar destacado" : "Destacar"}
+                      >
+                        <Star
+                          size={22}
+                          className={prod.destacado ? "text-yellow-400 fill-yellow-300" : "text-gray-300"}
+                          strokeWidth={2}
+                          fill={prod.destacado ? "#fde047" : "none"}
+                        />
+                      </button>
                       {/* Etiqueta de stock pegada */}
                       <div className="absolute top-3 -right-4 z-10 shadow-md rounded-l-full px-3 py-1 text-xs font-semibold flex items-center gap-1
                         bg-green-100 text-green-700"
@@ -793,7 +846,22 @@ export default function ProductosPage() {
                         </div>
                       )}
                     </td>
-                    <td className="px-6 py-4 font-medium">{prod.nombre}</td>
+                    <td className="px-6 py-4 font-medium flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => toggleDestacado(prod)}
+                        className="p-1 rounded-full hover:bg-yellow-100 transition"
+                        title={prod.destacado ? "Quitar destacado" : "Destacar"}
+                      >
+                        <Star
+                          size={18}
+                          className={prod.destacado ? "text-yellow-400 fill-yellow-300" : "text-gray-300"}
+                          strokeWidth={2}
+                          fill={prod.destacado ? "#fde047" : "none"}
+                        />
+                      </button>
+                      {prod.nombre}
+                    </td>
                     <td className="px-6 py-4">{prod.categoria?.nombre || "Sin categoría"}</td>
                     <td className="px-6 py-4">{prod.proveedor?.nombre || "Sin proveedor"}</td>
                     <td className="px-6 py-4">C${prod.precio.toFixed(2)}</td>

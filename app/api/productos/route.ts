@@ -33,6 +33,7 @@ export async function POST(req: NextRequest) {
       precio,
       stock,
       imagen,
+      destacado,
     } = body;
 
     if (
@@ -50,21 +51,21 @@ export async function POST(req: NextRequest) {
     }
 
     const nuevo = await prisma.producto.create({
-  data: {
-    nombre,
-    descripcion,
-    precio,
-    stock,
-    imagen,
-    categoriaId: categoriaId,
-    proveedorId: proveedorId,
-  },
-  include: {
-    categoria: true,
-    proveedor: true,
-  },
-});
-
+      data: {
+        nombre,
+        descripcion,
+        precio,
+        stock,
+        imagen,
+        categoriaId: categoriaId,
+        proveedorId: proveedorId,
+        ...(typeof destacado === 'boolean' ? { destacado } : {}),
+      },
+      include: {
+        categoria: true,
+        proveedor: true,
+      },
+    });
 
     return NextResponse.json(nuevo, { status: 201 });
   } catch (error) {
