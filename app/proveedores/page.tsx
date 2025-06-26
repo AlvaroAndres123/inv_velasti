@@ -32,6 +32,19 @@ interface Proveedor {
   direccion: string;
 }
 
+// Declaro la interfaz Producto para tipar el estado productos
+interface Producto {
+  id: number;
+  nombre: string;
+  descripcion: string;
+  categoria?: { nombre: string } | string;
+  proveedor?: { nombre: string } | string;
+  proveedorId?: number;
+  precio: number;
+  stock: number;
+  imagen?: string;
+}
+
 export default function ProveedoresPage() {
   const [proveedores, setProveedores] = useState<Proveedor[]>([]);
 
@@ -123,6 +136,11 @@ export default function ProveedoresPage() {
   // Extraer ciudades únicas si existe el campo direccion
   const ciudadesUnicas = Array.from(new Set(proveedores.map(p => (p.direccion?.split(",")[1]?.trim() || "")).filter(Boolean)));
 
+  // 1. Estado para productos y modal de detalles
+  const [productos, setProductos] = useState<Producto[]>([]);
+  const [modalDetalles, setModalDetalles] = useState(false);
+  const [proveedorDetalle, setProveedorDetalle] = useState<Proveedor | null>(null);
+
   useEffect(() => {
     const user = localStorage.getItem("usuario");
     if (!user) {
@@ -156,6 +174,14 @@ export default function ProveedoresPage() {
   useEffect(() => {
     if (isMobile) setVista('tarjetas');
   }, [isMobile]);
+
+  // 2. Cargar productos al montar
+  useEffect(() => {
+    fetch('/api/productos')
+      .then(res => res.json())
+      .then(data => setProductos(data))
+      .catch(err => console.error('Error cargando productos', err));
+  }, []);
 
   const abrirModalAgregar = () => {
     setProveedorActual(null);
@@ -429,6 +455,12 @@ export default function ProveedoresPage() {
       </div>
     );
   }
+
+  // 3. Función para abrir modal de detalles
+  const abrirModalDetalles = (prov: Proveedor) => {
+    setProveedorDetalle(prov);
+    setModalDetalles(true);
+  };
 
   if (cargando) {
     return (
@@ -755,6 +787,24 @@ export default function ProveedoresPage() {
                             </TooltipContent>
                           </Tooltip>
                         </TooltipProvider>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => abrirModalDetalles(proveedor)}
+                                className="text-blue-500 hover:text-blue-700"
+                                title="Ver detalles"
+                              >
+                                <svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Ver detalles</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
                       </div>
                     </td>
                   </tr>
@@ -792,6 +842,14 @@ export default function ProveedoresPage() {
                       title="Eliminar proveedor"
                     >
                       <Trash2 size={16} />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => abrirModalDetalles(prov)}
+                      title="Ver detalles"
+                    >
+                      <svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
                     </Button>
                   </div>
                 </div>
@@ -959,6 +1017,46 @@ export default function ProveedoresPage() {
           cancelText="Cancelar"
           loading={eliminando}
         />
+        {/* Modal de detalles */}
+        <Dialog open={modalDetalles} onOpenChange={setModalDetalles}>
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 text-blue-700">
+                <Truck size={22} /> Detalles del proveedor
+              </DialogTitle>
+            </DialogHeader>
+            {proveedorDetalle ? (
+              <div className="flex flex-col gap-4">
+                <div className="border-b pb-3 mb-2">
+                  <div className="font-bold text-xl text-gray-800 mb-1">{proveedorDetalle.nombre}</div>
+                  <div className="text-gray-600 text-sm mb-1"><b>Contacto:</b> {proveedorDetalle.contacto}</div>
+                  <div className="text-gray-600 text-sm mb-1"><b>Correo:</b> {proveedorDetalle.correo}</div>
+                  <div className="text-gray-600 text-sm mb-1"><b>Teléfono:</b> {proveedorDetalle.telefono}</div>
+                  <div className="text-gray-600 text-sm"><b>Dirección:</b> {proveedorDetalle.direccion}</div>
+                </div>
+                <div>
+                  <div className="font-semibold text-blue-700 mb-2">Productos vinculados</div>
+                  {productos.filter((p: Producto) => (typeof p.proveedor === 'object' ? p.proveedor?.nombre : p.proveedor) === proveedorDetalle.nombre || p.proveedorId === proveedorDetalle.id).length > 0 ? (
+                    <div className="space-y-2 max-h-60 overflow-y-auto">
+                      {productos.filter((p: Producto) => (typeof p.proveedor === 'object' ? p.proveedor?.nombre : p.proveedor) === proveedorDetalle.nombre || p.proveedorId === proveedorDetalle.id).map((prod: Producto, i: number) => (
+                        <div key={prod.id || i} className="flex flex-col md:flex-row md:items-center md:gap-4 border-b pb-2 last:border-b-0 last:pb-0">
+                          <span className="font-medium text-gray-800">{prod.nombre}</span>
+                          <span className="text-xs text-gray-500">Stock: {prod.stock}</span>
+                          <span className="text-xs text-gray-500">Precio: C$ {prod.precio}</span>
+                          <span className="text-xs text-gray-500">Categoría: {typeof prod.categoria === 'object' ? prod.categoria?.nombre : prod.categoria}</span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-gray-500 text-sm">No hay productos vinculados a este proveedor.</div>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div className="text-gray-500">No se encontró información del proveedor.</div>
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
