@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { List, LayoutGrid, Table, Filter, Search, ArrowLeftRight, Package, BadgeCheck, AlertTriangle, X, Trash2 } from "lucide-react";
+import { List, LayoutGrid, Table, Filter, Search, ArrowLeftRight, Package, BadgeCheck, AlertTriangle, X, Trash2, Ban, Eye } from "lucide-react";
 import AutoCompleteProducto from "@/components/AutoCompleteProducto";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -126,6 +126,9 @@ export default function MovimientosPage() {
   const [movimientoAAnular, setMovimientoAAnular] = useState<Movimiento | null>(null);
   const [motivoAnulacion, setMotivoAnulacion] = useState("");
   const [anulando, setAnulando] = useState(false);
+  // Estado para modal de detalles
+  const [modalDetalles, setModalDetalles] = useState(false);
+  const [productoDetalle, setProductoDetalle] = useState<Producto | null>(null);
 
   // Motivos únicos para autocomplete
   const motivosUnicos = Array.from(new Set(movimientos.map(m => m.motivo))).filter(Boolean);
@@ -514,6 +517,13 @@ const movimiento = {
     }
   };
 
+  // Función para abrir modal de detalles
+  const abrirModalDetalles = (mov: Movimiento) => {
+    const prod = productos.find(p => p.id === mov.productoId);
+    setProductoDetalle(prod || null);
+    setModalDetalles(true);
+  };
+
   return (
     <div className="min-h-screen bg-[#f6f8fa] flex flex-col items-center justify-start py-4">
       <div className="w-full max-w-7xl px-4 sm:px-8 mx-auto">
@@ -779,16 +789,47 @@ const movimiento = {
                       </span>
                     </div>
                     <span className="text-xs text-gray-400 font-medium">Producto:</span>
-                    <TooltipProvider delayDuration={300}>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <span className="truncate max-w-[120px] block cursor-pointer font-medium text-gray-800">{productos.find((p) => p.id === mov.productoId)?.nombre || "Desconocido"}</span>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          {productos.find((p) => p.id === mov.productoId)?.nombre || "Desconocido"}
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
+                    <div className="flex items-center justify-between">
+                      <span className="font-semibold text-sm text-gray-800 truncate">{productos.find((p) => p.id === mov.productoId)?.nombre || "Desconocido"}</span>
+                      <div className="flex gap-2">
+                        <TooltipProvider delayDuration={300}>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="outline"
+                                size="icon"
+                                className="border border-blue-200 text-blue-500 bg-white hover:bg-blue-50 hover:text-blue-600 focus:ring-blue-200 rounded-md"
+                                onClick={() => abrirModalDetalles(mov)}
+                                aria-label="Ver detalles"
+                              >
+                                <Eye size={20} />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Ver detalles</TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                        {mov.anulado ? (
+                          <span className="px-2 py-0.5 rounded-full bg-gray-200 text-gray-500 text-xs font-semibold ml-2">Anulado</span>
+                        ) : (
+                          <TooltipProvider delayDuration={300}>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  size="icon"
+                                  className="border border-red-200 text-red-500 bg-white hover:bg-red-50 hover:text-red-600 focus:ring-red-200 rounded-md ml-2"
+                                  onClick={() => abrirModalAnular(mov)}
+                                  aria-label="Anular movimiento"
+                                >
+                                  <Ban size={20} />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Anular movimiento</TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        )}
+                      </div>
+                    </div>
                     <div className="flex items-center gap-2">
                       <span className="text-xs text-gray-400 font-medium">Cantidad:</span>
                       <span className="text-xs text-gray-700">{mov.cantidad}</span>
@@ -796,15 +837,6 @@ const movimiento = {
                     <div className="flex items-center gap-2">
                       <span className="text-xs text-gray-400 font-medium">Motivo:</span>
                       <span className="text-xs text-gray-700 truncate">{mov.motivo}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {mov.anulado ? (
-                        <span className="px-2 py-0.5 rounded-full bg-gray-200 text-gray-500 text-xs font-semibold">Anulado</span>
-                      ) : (
-                        <Button variant="destructive" size="sm" onClick={() => abrirModalAnular(mov)}>
-                          <Trash2 size={16} className="mr-1" /> Anular
-                        </Button>
-                      )}
                     </div>
                   </div>
                 ))}
@@ -917,13 +949,42 @@ const movimiento = {
                               </Tooltip>
                             </TooltipProvider>
                           </td>
-                          <td className="px-4 py-4 border-b border-gray-100">
+                          <td className="px-4 py-4 border-b border-gray-100 flex gap-2">
+                            <TooltipProvider delayDuration={300}>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="outline"
+                                    size="icon"
+                                    className="border border-blue-200 text-blue-500 bg-white hover:bg-blue-50 hover:text-blue-600 focus:ring-blue-200 rounded-md"
+                                    onClick={() => abrirModalDetalles(mov)}
+                                    aria-label="Ver detalles"
+                                  >
+                                    <Eye size={20} />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Ver detalles</TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
                             {mov.anulado ? (
                               <span className="px-2 py-0.5 rounded-full bg-gray-200 text-gray-500 text-xs font-semibold">Anulado</span>
                             ) : (
-                              <Button variant="destructive" size="sm" onClick={() => abrirModalAnular(mov)}>
-                                <Trash2 size={16} className="mr-1" /> Anular
-                              </Button>
+                              <TooltipProvider delayDuration={300}>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      variant="outline"
+                                      size="icon"
+                                      className="border border-red-200 text-red-500 bg-white hover:bg-red-50 hover:text-red-600 focus:ring-red-200 rounded-md"
+                                      onClick={() => abrirModalAnular(mov)}
+                                      aria-label="Anular movimiento"
+                                    >
+                                      <Ban size={20} />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>Anular movimiento</TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
                             )}
                           </td>
                         </tr>
@@ -1323,6 +1384,32 @@ const movimiento = {
                 {anulando ? "Anulando..." : "Anular"}
               </Button>
             </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Modal de detalles de producto */}
+        <Dialog open={modalDetalles} onOpenChange={setModalDetalles}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 text-blue-600">
+                <Eye size={22} /> Detalles del producto
+              </DialogTitle>
+            </DialogHeader>
+            {productoDetalle ? (
+              <div className="flex flex-col gap-2">
+                {productoDetalle.imagen && (
+                  <img src={productoDetalle.imagen} alt={productoDetalle.nombre} className="w-24 h-24 object-cover rounded border mx-auto mb-2" />
+                )}
+                <div><span className="font-semibold">Nombre:</span> {productoDetalle.nombre}</div>
+                <div><span className="font-semibold">Descripción:</span> {productoDetalle.descripcion}</div>
+                <div><span className="font-semibold">Categoría:</span> {typeof productoDetalle.categoria === 'object' ? productoDetalle.categoria?.nombre : productoDetalle.categoria}</div>
+                <div><span className="font-semibold">Proveedor:</span> {typeof productoDetalle.proveedor === 'object' ? productoDetalle.proveedor?.nombre : productoDetalle.proveedor}</div>
+                <div><span className="font-semibold">Precio:</span> C$ {productoDetalle.precio}</div>
+                <div><span className="font-semibold">Stock actual:</span> {productoDetalle.stock}</div>
+              </div>
+            ) : (
+              <div className="text-gray-500">No se encontró información del producto.</div>
+            )}
           </DialogContent>
         </Dialog>
       </div>
