@@ -182,7 +182,7 @@ export default function Home() {
   )
     .map(([name, visitors]) => ({ name, visitors }))
     .sort((a, b) => b.visitors - a.visitors)
-    .slice(0, 5);
+    .slice(0, 3);
 
   return (
     <main className="p-4 sm:p-6 md:p-8 max-w-screen-xl mx-auto">
