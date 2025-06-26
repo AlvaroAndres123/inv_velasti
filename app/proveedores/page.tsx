@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -10,8 +10,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Plus, Pencil, Trash2, Truck, Search, Filter, Table, LayoutGrid, X } from "lucide-react";
-import { useEffect } from "react";
+import { Plus, Pencil, Trash2, Truck, Search, Filter, Table, LayoutGrid, X, Mail, User, Phone } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { useToast, ToastContainer } from "@/components/ui/toast";
@@ -89,6 +88,11 @@ export default function ProveedoresPage() {
   const [filtroCorreo, setFiltroCorreo] = useState("");
   const [filtroTelefono, setFiltroTelefono] = useState("");
   const [filtroCiudad, setFiltroCiudad] = useState("");
+
+  // Sugerencias únicas para autocompletado
+  const nombresUnicos = useMemo(() => Array.from(new Set(proveedores.map(p => p.nombre).filter(Boolean))), [proveedores]);
+  const contactosUnicos = useMemo(() => Array.from(new Set(proveedores.map(p => p.contacto).filter(Boolean))), [proveedores]);
+  const correosUnicos = useMemo(() => Array.from(new Set(proveedores.map(p => p.correo).filter(Boolean))), [proveedores]);
 
   // Extraer ciudades únicas si existe el campo direccion
   const ciudadesUnicas = Array.from(new Set(proveedores.map(p => (p.direccion?.split(",")[1]?.trim() || "")).filter(Boolean)));
@@ -520,7 +524,13 @@ export default function ProveedoresPage() {
                 value={filtroNombre}
                 onChange={e => setFiltroNombre(e.target.value)}
                 className="pl-10 rounded-md border border-blue-200 focus:border-blue-500 focus:ring-blue-300 bg-white h-11 text-base w-full"
+                list="nombres-proveedores"
               />
+              <datalist id="nombres-proveedores">
+                {nombresUnicos.map(nombre => (
+                  <option key={nombre} value={nombre} />
+                ))}
+              </datalist>
             </div>
             {/* Buscar por contacto */}
             <div className="flex flex-col relative w-full">
@@ -534,7 +544,13 @@ export default function ProveedoresPage() {
                 value={filtroContacto}
                 onChange={e => setFiltroContacto(e.target.value)}
                 className="pl-10 rounded-md border border-blue-200 focus:border-blue-500 focus:ring-blue-300 bg-white h-11 text-base w-full"
+                list="contactos-proveedores"
               />
+              <datalist id="contactos-proveedores">
+                {contactosUnicos.map(contacto => (
+                  <option key={contacto} value={contacto} />
+                ))}
+              </datalist>
             </div>
             {/* Buscar por correo */}
             <div className="flex flex-col relative w-full">
@@ -548,7 +564,13 @@ export default function ProveedoresPage() {
                 value={filtroCorreo}
                 onChange={e => setFiltroCorreo(e.target.value)}
                 className="pl-10 rounded-md border border-blue-200 focus:border-blue-500 focus:ring-blue-300 bg-white h-11 text-base w-full"
+                list="correos-proveedores"
               />
+              <datalist id="correos-proveedores">
+                {correosUnicos.map(correo => (
+                  <option key={correo} value={correo} />
+                ))}
+              </datalist>
             </div>
             {/* Buscar por teléfono */}
             <div className="flex flex-col relative w-full">
@@ -564,18 +586,21 @@ export default function ProveedoresPage() {
                 className="pl-10 rounded-md border border-blue-200 focus:border-blue-500 focus:ring-blue-300 bg-white h-11 text-base w-full"
               />
             </div>
-            {/* Filtrar por ciudad/ubicación si existe */}
-            <div className="flex flex-col w-full">
-              <label htmlFor="filtroCiudad" className="text-sm text-gray-700 mb-1 font-medium">Ciudad/Ubicación</label>
+            {/* Filtrar por ciudad */}
+            <div className="flex flex-col relative w-full">
+              <label htmlFor="filtroCiudad" className="text-sm text-gray-700 mb-1 font-medium">Ciudad</label>
+              <span className="absolute left-3 top-[70%] -translate-y-1/2 text-blue-400 pointer-events-none">
+                <Filter size={20} />
+              </span>
               <select
                 id="filtroCiudad"
                 value={filtroCiudad}
                 onChange={e => setFiltroCiudad(e.target.value)}
-                className="rounded-md border border-blue-200 focus:border-blue-500 focus:ring-blue-300 bg-white h-11 text-base w-full"
+                className="pl-10 rounded-md border border-blue-200 focus:border-blue-500 focus:ring-blue-300 bg-white h-11 text-base w-full"
               >
-                <option value="">Todas</option>
-                {ciudadesUnicas.map((ciudad, i) => (
-                  <option key={i} value={ciudad}>{ciudad}</option>
+                <option value="">Todas las ciudades</option>
+                {ciudadesUnicas.map(ciudad => (
+                  <option key={ciudad} value={ciudad}>{ciudad}</option>
                 ))}
               </select>
             </div>
