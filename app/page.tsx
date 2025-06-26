@@ -228,10 +228,52 @@ export default function Home() {
     }
   }
 
+  // Generar todos los meses del año seleccionado para el gráfico
+  const mesesGrafico = [
+    "enero", "febrero", "marzo", "abril", "mayo", "junio",
+    "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"
+  ];
+
+  const ventasMensualesMap = new Map(
+    ventasMensuales.map((v) => [v.mes.toLowerCase(), v.ventas])
+  );
+
+  const mesesAbreviados = [
+    "Ene", "Feb", "Mar", "Abr", "May", "Jun",
+    "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"
+  ];
+
+  const ventasMensualesCompletas = mesesGrafico.map((mes, idx) => ({
+    mes: mesesAbreviados[idx],
+    ventas: ventasMensualesMap.get(`${mes} ${añoSeleccionado}`) || 0,
+  }));
+
+  // Calcular el porcentaje de aumento real de ventas este mes vs mes anterior
+  const mesActualIdx = new Date().getMonth();
+  const ventasMesActual = ventasMensualesCompletas[mesActualIdx]?.ventas || 0;
+  const ventasMesAnterior = ventasMensualesCompletas[mesActualIdx - 1]?.ventas || 0;
+  const aumentoPorcentaje = ventasMesAnterior > 0 ? (((ventasMesActual - ventasMesAnterior) / ventasMesAnterior) * 100).toFixed(1) : "0";
+
+  // Calcular el rango real de meses para productos más vendidos (últimos 6 meses con datos)
+  const mesesConDatos = ventasMensualesCompletas.filter(v => v.ventas > 0);
+  const idxUltimoMes = mesesConDatos.length > 0 ? ventasMensualesCompletas.findIndex(v => v.ventas > 0 && v.mes === mesesConDatos[mesesConDatos.length - 1].mes) : 0;
+  const idxPrimerMes = Math.max(0, idxUltimoMes - 5);
+  const rangoMeses = ventasMensualesCompletas.slice(idxPrimerMes, idxUltimoMes + 1).map(v => v.mes).join(" - ");
+
+  // Generar todos los meses para el gráfico de Entradas vs Salidas
+  const resumenMovimientosCompletos = mesesGrafico.map((mes, idx) => {
+    const encontrado = resumenMovimientos.find((rm) => rm.mes.toLowerCase() === mesesAbreviados[idx].toLowerCase());
+    return {
+      mes: mesesAbreviados[idx],
+      entradas: encontrado ? encontrado.entradas : 0,
+      salidas: encontrado ? encontrado.salidas : 0,
+    };
+  });
+
   return (
     <main className="p-4 sm:p-6 md:p-8 max-w-screen-xl mx-auto">
       <h2 className="text-2xl md:text-3xl font-bold mb-6 text-center md:text-left">
-        Dashboard
+        Panel de control
       </h2>
 
       <motion.div
@@ -366,25 +408,36 @@ export default function Home() {
           <h3 className="text-lg md:text-xl font-semibold mb-4 text-blue-900 dark:text-blue-200 text-center md:text-left tracking-wide">
             Ventas por Mes
           </h3>
-          <div className="bg-white/80 dark:bg-black/60 border border-blue-200 dark:border-blue-900 p-4 rounded-2xl shadow-xl w-full h-[250px] sm:h-[300px] mb-12 backdrop-blur-md">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={ventasMensuales}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#c7d2fe" />
-                <XAxis dataKey="mes" stroke="#1e3a8a" />
-                <YAxis stroke="#1e3a8a" />
-                <Tooltip contentStyle={{ background: '#e0e7ff', borderRadius: 8, color: '#1e3a8a' }} />
-                <Bar dataKey="ventas" fill="#3b82f6" radius={[8, 8, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+          <div className="w-full overflow-x-auto">
+            <div className="min-w-[600px] sm:min-w-0 bg-white/80 dark:bg-black/60 border border-blue-200 dark:border-blue-900 p-2 sm:p-4 rounded-2xl shadow-xl h-[220px] sm:h-[300px] mb-12 backdrop-blur-md">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  data={ventasMensualesCompletas}
+                  barCategoryGap={ventasMensualesCompletas.filter(v => v.ventas > 0).length === 1 ? 200 : 30}
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke="#c7d2fe" />
+                  <XAxis dataKey="mes" stroke="#1e3a8a" tick={{ fontSize: 12 }} interval={0} />
+                  <YAxis stroke="#1e3a8a" tick={{ fontSize: 12 }} />
+                  <Tooltip contentStyle={{ background: '#e0e7ff', borderRadius: 8, color: '#1e3a8a', fontSize: 13 }} />
+                  <Bar
+                    dataKey="ventas"
+                    fill="#3b82f6"
+                    radius={[8, 8, 0, 0]}
+                    barSize={ventasMensualesCompletas.filter(v => v.ventas > 0).length === 1 ? 40 : undefined}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
           </div>
 
+          {/* Top productos más vendidos */}
           <h3 className="text-lg md:text-xl font-semibold mb-4 text-blue-900 dark:text-blue-200 text-center md:text-left tracking-wide">
             Top 3 productos más vendidos
           </h3>
           <Card className="mb-12 bg-white/80 dark:bg-black/60 border border-blue-200 dark:border-blue-900 rounded-2xl shadow-xl backdrop-blur-md">
             <CardHeader className="items-center pb-0">
               <CardTitle className="text-blue-900 dark:text-blue-200">Distribución por producto</CardTitle>
-              <CardDescription>Últimos 6 meses</CardDescription>
+              <CardDescription>Mostrando productos más vendidos en los últimos 6 meses</CardDescription>
             </CardHeader>
             <CardContent className="pb-0">
               <ChartContainer
@@ -451,10 +504,8 @@ export default function Home() {
             </CardContent>
             <CardFooter className="flex-col gap-2 text-sm">
               <div className="flex items-center gap-2 font-medium leading-none text-blue-900 dark:text-blue-200">
-                En aumento un 5.2% este mes <TrendingUp className="h-4 w-4" />
-              </div>
-              <div className="leading-none text-muted-foreground">
-                Mostrando productos más vendidos en los últimos 6 meses
+                {`En aumento un ${aumentoPorcentaje}% este mes`}
+                <TrendingUp className="h-4 w-4" />
               </div>
             </CardFooter>
           </Card>
@@ -462,18 +513,23 @@ export default function Home() {
           <h3 className="text-lg md:text-xl font-semibold mb-4 text-blue-900 dark:text-blue-200 text-center md:text-left tracking-wide">
             Entradas vs Salidas por Mes
           </h3>
-          <div className="bg-white/80 dark:bg-black/60 border border-blue-200 dark:border-blue-900 p-4 rounded-2xl shadow-xl w-full h-[250px] sm:h-[300px] mb-12 backdrop-blur-md">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={resumenMovimientos}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#c7d2fe" />
-                <XAxis dataKey="mes" stroke="#1e3a8a" />
-                <YAxis stroke="#1e3a8a" />
-                <Tooltip contentStyle={{ background: '#e0e7ff', borderRadius: 8, color: '#1e3a8a' }} />
-                <Legend />
-                <Bar dataKey="entradas" fill="#10b981" name="Entradas" radius={[8, 8, 0, 0]} />
-                <Bar dataKey="salidas" fill="#ef4444" name="Salidas" radius={[8, 8, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+          <div className="w-full overflow-x-auto">
+            <div className="min-w-[600px] sm:min-w-0 bg-white/80 dark:bg-black/60 border border-blue-200 dark:border-blue-900 p-2 sm:p-4 rounded-2xl shadow-xl h-[220px] sm:h-[300px] mb-12 backdrop-blur-md">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  data={resumenMovimientosCompletos}
+                  barCategoryGap={resumenMovimientosCompletos.filter(v => v.entradas > 0 || v.salidas > 0).length === 1 ? 200 : 30}
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke="#c7d2fe" />
+                  <XAxis dataKey="mes" stroke="#1e3a8a" tick={{ fontSize: 12 }} interval={0} />
+                  <YAxis stroke="#1e3a8a" tick={{ fontSize: 12 }} />
+                  <Tooltip contentStyle={{ background: '#e0e7ff', borderRadius: 8, color: '#1e3a8a', fontSize: 13 }} />
+                  <Legend />
+                  <Bar dataKey="entradas" fill="#10b981" name="Entradas" radius={[8, 8, 0, 0]} />
+                  <Bar dataKey="salidas" fill="#ef4444" name="Salidas" radius={[8, 8, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
           </div>
         </>
       )}
