@@ -431,7 +431,7 @@ const movimiento = {
             {/* Buscar */}
             <div className="w-full flex flex-col relative">
               <label className="text-sm text-gray-700 mb-1 font-medium opacity-0 select-none">.</label>
-              <span className="absolute left-3 top-[55%] -translate-y-1/2 text-blue-400 pointer-events-none">
+              <span className="absolute left-3 top-[70%] -translate-y-1/2 text-blue-400 pointer-events-none">
                 <Search size={20} />
               </span>
               <Input
