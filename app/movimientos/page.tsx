@@ -282,7 +282,8 @@ const movimiento = {
     if (filtroFechaInicio && filtroFechaFin) {
       coincideFecha = movFechaISO >= filtroFechaInicio && movFechaISO <= filtroFechaFin;
     } else if (filtroFecha) {
-      coincideFecha = movFechaISO === filtroFecha;
+      // Normalizo ambos a YYYY-MM-DD para comparar correctamente
+      coincideFecha = movFechaISO.slice(0, 10) === filtroFecha.slice(0, 10);
     }
     const coincideCategoria = filtroCategoria === "todas" ? true : (producto?.categoria === filtroCategoria);
     const coincideMarca = filtroMarca === "todas" ? true : (producto?.proveedor === filtroMarca);
