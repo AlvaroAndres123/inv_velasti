@@ -779,186 +779,107 @@ export default function ProductosPage() {
         </div>
       </div>
 
-      {/* Filtros avanzados */}
-      <div className="mb-4">
-        <div className="flex flex-wrap items-center gap-2 mb-2">
-          <Filter className="text-blue-500" size={20} />
-          <h3 className="font-semibold text-gray-700">Filtros</h3>
-          <span className="ml-2 text-xs text-gray-500">{productosFiltrados.length} resultado(s)</span>
-          {/* Filtro solo destacados */}
-          <button
-            type="button"
-            onClick={() => setSoloDestacados((v) => !v)}
-            className={`ml-2 p-2 rounded-full border transition ${soloDestacados ? 'bg-yellow-100 border-yellow-300' : 'bg-white border-gray-200 hover:bg-gray-100'}`}
-            title="Mostrar solo destacados"
-          >
-            <Star
-              size={20}
-              className={soloDestacados ? 'text-yellow-400 fill-yellow-300' : 'text-gray-300'}
-              strokeWidth={2}
-              fill={soloDestacados ? '#fde047' : 'none'}
+      {/* Filtros colapsables en móvil */}
+      <div className={`${isMobile && !filtrosAbiertos ? 'hidden' : ''} mb-8`}> 
+        {/* Fila principal de filtros alineados */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+          {/* Buscar productos */}
+          <div className="w-full flex flex-col relative">
+            <label className="text-sm text-gray-700 mb-1 font-medium opacity-0 select-none">.</label>
+            {/* Icono de búsqueda */}
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-blue-400 pointer-events-none">
+              <Search size={20} />
+            </span>
+            <Input
+              placeholder="Buscar productos..."
+              value={busqueda}
+              onChange={(e) => setBusqueda(e.target.value)}
+              className="pl-10 rounded-md border border-blue-200 focus:border-blue-400 focus:ring-blue-300 bg-white h-11 text-base w-full"
             />
-          </button>
-          {/* Selector de productos por página */}
-          <label className="ml-4 text-xs text-gray-500">Mostrar</label>
-          <select
-            className="rounded-md border border-blue-200 focus:border-blue-400 focus:ring-blue-300 bg-white h-8 text-sm px-2"
-            value={productosPorPagina}
-            onChange={e => {
-              setProductosPorPagina(Number(e.target.value));
-              setPaginaActual(1);
-            }}
-          >
-            {opcionesPorPagina.map(op => (
-              <option key={op} value={op}>{op}</option>
-            ))}
-          </select>
-          <span className="text-xs text-gray-500">por página</span>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={limpiarFiltros}
-            className="ml-auto text-gray-500 hover:text-gray-700"
-          >
-            <X size={16} /> Limpiar
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setFiltrosAbiertos((v) => !v)}
-            className="md:hidden"
-          >
-            {filtrosAbiertos ? 'Ocultar' : 'Mostrar'} filtros
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => exportarProductosAExcel(
-              seleccionados.length > 0 ? productos.filter(p => seleccionados.includes(p.id)) : productosFiltrados,
-              nombreArchivoExportacion(seleccionados.length > 0 ? 'Seleccionados' : 'Filtrados', 'xlsx')
-            )}
-            className="ml-2 flex items-center gap-1"
-            title={seleccionados.length > 0 ? "Exportar seleccionados a Excel" : "Exportar productos filtrados a Excel"}
-          >
-            <svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path d="M16 16v2a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M7 9h6M7 13h4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M20 7v6m0 0l2-2m-2 2l-2-2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-            Exportar Excel
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => exportarProductosAPDF(
-              seleccionados.length > 0 ? productos.filter(p => seleccionados.includes(p.id)) : productosFiltrados,
-              nombreArchivoExportacion(seleccionados.length > 0 ? 'Seleccionados' : 'Filtrados', 'pdf')
-            )}
-            className="ml-2 flex items-center gap-1"
-            title={seleccionados.length > 0 ? "Exportar seleccionados a PDF" : "Exportar productos filtrados a PDF"}
-          >
-            <svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path d="M16 16v2a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M7 9h6M7 13h4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M20 7v6m0 0l2-2m-2 2l-2-2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-            Exportar PDF
-          </Button>
+            <div className="flex items-center gap-2 mt-1">
+              <input type="checkbox" id="nombreExacto" checked={nombreExacto} onChange={() => setNombreExacto(!nombreExacto)} />
+              <label htmlFor="nombreExacto" className="text-xs text-gray-500">Coincidencia exacta</label>
+            </div>
+          </div>
+          {/* Categoría */}
+          <div className="w-full flex flex-col">
+            <label className="text-sm text-gray-700 mb-1 font-medium">Categoría</label>
+            <MultiSelect
+              options={categoriasLocales.map(cat => ({ label: cat.nombre, value: String(cat.id) }))}
+              value={categoriaFiltro}
+              onChange={setCategoriaFiltro}
+              placeholder="Seleccionar categoría..."
+              className="mb-2 w-full rounded-md border border-blue-200 focus:border-blue-400 focus:ring-blue-300 bg-white h-11 text-base"
+            />
+          </div>
+          {/* Proveedor */}
+          <div className="w-full flex flex-col">
+            <label className="text-sm text-gray-700 mb-1 font-medium">Proveedor</label>
+            <MultiSelect
+              options={proveedores.map(prov => ({ label: prov.nombre, value: String(prov.id) }))}
+              value={proveedorFiltro}
+              onChange={setProveedorFiltro}
+              placeholder="Seleccionar proveedor..."
+              className="mb-2 w-full rounded-md border border-blue-200 focus:border-blue-400 focus:ring-blue-300 bg-white h-11 text-base"
+            />
+          </div>
         </div>
-        {/* Filtros colapsables en móvil */}
-        <div className={`${isMobile && !filtrosAbiertos ? 'hidden' : ''}`}>
-          {/* Fila principal de filtros alineados */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-            {/* Buscar productos */}
-            <div className="w-full flex flex-col relative">
-              <label className="text-sm text-gray-700 mb-1 font-medium opacity-0 select-none">.</label>
-              {/* Icono de búsqueda */}
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-blue-400 pointer-events-none">
-                <Search size={20} />
-              </span>
+        {/* Resto de filtros */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Filtro por stock */}
+          <div className="w-full">
+            <label className="text-xs text-gray-500">Stock</label>
+            <div className="flex gap-2 flex-wrap mt-1">
+              <label className="flex items-center gap-1 text-xs">
+                <input type="radio" name="stockFiltro" value="todos" checked={stockFiltro === 'todos'} onChange={() => setStockFiltro('todos')} /> Todos
+              </label>
+              <label className="flex items-center gap-1 text-xs">
+                <input type="radio" name="stockFiltro" value="agotado" checked={stockFiltro === 'agotado'} onChange={() => setStockFiltro('agotado')} /> Agotados
+              </label>
+              <label className="flex items-center gap-1 text-xs">
+                <input type="radio" name="stockFiltro" value="bajo" checked={stockFiltro === 'bajo'} onChange={() => setStockFiltro('bajo')} /> Bajo (&le;10)
+              </label>
+              <label className="flex items-center gap-1 text-xs">
+                <input type="radio" name="stockFiltro" value="ok" checked={stockFiltro === 'ok'} onChange={() => setStockFiltro('ok')} /> OK (&gt;10)
+              </label>
+            </div>
+          </div>
+          {/* Filtro por precio */}
+          <div className="w-full">
+            <label className="text-xs text-gray-500">Precio</label>
+            <div className="flex gap-2 mt-1">
               <Input
-                placeholder="Buscar productos..."
-                value={busqueda}
-                onChange={(e) => setBusqueda(e.target.value)}
-                className="pl-10 rounded-md border border-blue-200 focus:border-blue-400 focus:ring-blue-300 bg-white h-11 text-base w-full"
+                type="number"
+                placeholder="Mínimo"
+                value={precioMin}
+                onChange={(e) => setPrecioMin(e.target.value)}
+                className="rounded-md border border-blue-200 focus:border-blue-400 focus:ring-blue-300 bg-white h-11 text-base w-full"
               />
-              <div className="flex items-center gap-2 mt-1">
-                <input type="checkbox" id="nombreExacto" checked={nombreExacto} onChange={() => setNombreExacto(!nombreExacto)} />
-                <label htmlFor="nombreExacto" className="text-xs text-gray-500">Coincidencia exacta</label>
-              </div>
-            </div>
-            {/* Categoría */}
-            <div className="w-full flex flex-col">
-              <label className="text-sm text-gray-700 mb-1 font-medium">Categoría</label>
-              <MultiSelect
-                options={categoriasLocales.map(cat => ({ label: cat.nombre, value: String(cat.id) }))}
-                value={categoriaFiltro}
-                onChange={setCategoriaFiltro}
-                placeholder="Seleccionar categoría..."
-                className="mb-2 w-full rounded-md border border-blue-200 focus:border-blue-400 focus:ring-blue-300 bg-white h-11 text-base"
-              />
-            </div>
-            {/* Proveedor */}
-            <div className="w-full flex flex-col">
-              <label className="text-sm text-gray-700 mb-1 font-medium">Proveedor</label>
-              <MultiSelect
-                options={proveedores.map(prov => ({ label: prov.nombre, value: String(prov.id) }))}
-                value={proveedorFiltro}
-                onChange={setProveedorFiltro}
-                placeholder="Seleccionar proveedor..."
-                className="mb-2 w-full rounded-md border border-blue-200 focus:border-blue-400 focus:ring-blue-300 bg-white h-11 text-base"
+              <Input
+                type="number"
+                placeholder="Máximo"
+                value={precioMax}
+                onChange={(e) => setPrecioMax(e.target.value)}
+                className="rounded-md border border-blue-200 focus:border-blue-400 focus:ring-blue-300 bg-white h-11 text-base w-full"
               />
             </div>
           </div>
-          {/* Resto de filtros */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {/* Filtro por stock */}
-            <div className="w-full">
-              <label className="text-xs text-gray-500">Stock</label>
-              <div className="flex gap-2 flex-wrap mt-1">
-                <label className="flex items-center gap-1 text-xs">
-                  <input type="radio" name="stockFiltro" value="todos" checked={stockFiltro === 'todos'} onChange={() => setStockFiltro('todos')} /> Todos
-                </label>
-                <label className="flex items-center gap-1 text-xs">
-                  <input type="radio" name="stockFiltro" value="agotado" checked={stockFiltro === 'agotado'} onChange={() => setStockFiltro('agotado')} /> Agotados
-                </label>
-                <label className="flex items-center gap-1 text-xs">
-                  <input type="radio" name="stockFiltro" value="bajo" checked={stockFiltro === 'bajo'} onChange={() => setStockFiltro('bajo')} /> Bajo (&le;10)
-                </label>
-                <label className="flex items-center gap-1 text-xs">
-                  <input type="radio" name="stockFiltro" value="ok" checked={stockFiltro === 'ok'} onChange={() => setStockFiltro('ok')} /> OK (&gt;10)
-                </label>
-              </div>
-            </div>
-            {/* Filtro por precio */}
-            <div className="w-full">
-              <label className="text-xs text-gray-500">Precio</label>
-              <div className="flex gap-2 mt-1">
-                <Input
-                  type="number"
-                  placeholder="Mínimo"
-                  value={precioMin}
-                  onChange={(e) => setPrecioMin(e.target.value)}
-                  className="rounded-md border border-blue-200 focus:border-blue-400 focus:ring-blue-300 bg-white h-11 text-base w-full"
-                />
-                <Input
-                  type="number"
-                  placeholder="Máximo"
-                  value={precioMax}
-                  onChange={(e) => setPrecioMax(e.target.value)}
-                  className="rounded-md border border-blue-200 focus:border-blue-400 focus:ring-blue-300 bg-white h-11 text-base w-full"
-                />
-              </div>
-            </div>
-            {/* Filtro de orden */}
-            <div className="w-full">
-              <label className="text-xs text-gray-500">Ordenar por</label>
-              <div className="flex gap-2 mt-1 items-center">
-                <select
-                  className="rounded-md border border-blue-200 focus:border-blue-400 focus:ring-blue-300 bg-white h-11 text-base w-full font-['Adam',_sans-serif] text-blue-900 pr-8 pl-4"
-                  value={orden}
-                  onChange={e => setOrden(e.target.value as any)}
-                >
-                  <option value="nombre">Nombre</option>
-                  <option value="precio">Precio</option>
-                  <option value="stock">Stock</option>
-                </select>
-                <Button type="button" variant="outline" size="icon" onClick={() => setAsc(a => !a)} title={asc ? 'Ascendente' : 'Descendente'}>
-                  {asc ? <svg width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M7 14l5-5 5 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg> : <svg width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
-                </Button>
-              </div>
+          {/* Filtro de orden */}
+          <div className="w-full">
+            <label className="text-xs text-gray-500">Ordenar por</label>
+            <div className="flex gap-2 mt-1 items-center">
+              <select
+                className="rounded-md border border-blue-200 focus:border-blue-400 focus:ring-blue-300 bg-white h-11 text-base w-full font-['Adam',_sans-serif] text-blue-900 pr-8 pl-4"
+                value={orden}
+                onChange={e => setOrden(e.target.value as any)}
+              >
+                <option value="nombre">Nombre</option>
+                <option value="precio">Precio</option>
+                <option value="stock">Stock</option>
+              </select>
+              <Button type="button" variant="outline" size="icon" onClick={() => setAsc(a => !a)} title={asc ? 'Ascendente' : 'Descendente'}>
+                {asc ? <svg width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M7 14l5-5 5 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg> : <svg width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+              </Button>
             </div>
           </div>
         </div>
@@ -967,7 +888,7 @@ export default function ProductosPage() {
       {/* Grid de tarjetas o tabla según la vista elegida */}
       {vista === 'tarjetas' ? (
         <TooltipProvider delayDuration={300}>
-          <div className="w-full">
+          <div className="w-full mt-8">
             <AnimatePresence>
               {productosFiltrados.length === 0 ? (
                 <motion.div
@@ -1111,7 +1032,7 @@ export default function ProductosPage() {
           </div>
         </TooltipProvider>
       ) : (
-        <div className="w-full overflow-x-auto rounded-xl shadow">
+        <div className="w-full mt-8 overflow-x-auto rounded-xl shadow">
           {productosFiltrados.length === 0 ? (
             <div className="flex flex-col items-center justify-center min-h-[180px] text-blue-500 bg-white rounded-xl shadow p-6 my-8">
               <Package size={40} className="mb-2" />

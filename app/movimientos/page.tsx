@@ -480,74 +480,91 @@ const movimiento = {
             </Button>
           </div>
         </div>
-        {/* Filtros y botones de exportación alineados */}
-        <div className="flex flex-wrap items-center gap-2 mb-2">
-          <Filter className="text-blue-500" size={20} />
-          <h3 className="font-semibold text-gray-700">Filtros</h3>
-          <span className="ml-2 text-xs text-gray-500">{movimientosFiltrados.length} resultado(s)</span>
-          <label className="ml-4 text-xs text-gray-500">Mostrar</label>
-          <select
-            className="rounded-md border border-blue-200 focus:border-blue-400 focus:ring-blue-300 bg-white h-8 text-sm px-2"
-            value={movimientosPorPagina}
-            onChange={e => {
-              setMovimientosPorPagina(Number(e.target.value));
-              setPaginaActual(1);
-            }}
-          >
-            {opcionesPorPagina.map(op => (
-              <option key={op} value={op}>{op}</option>
-            ))}
-          </select>
-          <span className="text-xs text-gray-500">por página</span>
-          <div className="flex gap-2 ml-auto">
-            <ExportButton
-              onClick={() => exportarMovimientosAExcel(
-                movimientosFiltrados,
-                nombreArchivoExportacion('Filtrados', 'xlsx')
-              )}
-              icon={
-                <svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path d="M16 16v2a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M7 9h6M7 13h4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M20 7v6m0 0l2-2m-2 2l-2-2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-              }
-              title="Exportar movimientos filtrados a Excel"
-            >
-              Exportar Excel
-            </ExportButton>
-            <ExportButton
-              onClick={() => exportarMovimientosAPDF(
-                movimientosFiltrados,
-                nombreArchivoExportacion('Filtrados', 'pdf')
-              )}
-              icon={
-                <svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path d="M16 16v2a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M7 9h6M7 13h4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M20 7v6m0 0l2-2m-2 2l-2-2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-              }
-              title="Exportar movimientos filtrados a PDF"
-            >
-              Exportar PDF
-            </ExportButton>
+        {/* Controles superiores y filtros */}
+        <div className="mb-4">
+          {/* Controles superiores agrupados y responsivos */}
+          <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-2 mb-2 w-full">
+            {/* Izquierda: Filtros, resultados y paginación */}
+            <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-4 w-full md:w-auto">
+              <div className="flex items-center gap-2">
+                <Filter className="text-blue-500" size={20} />
+                <h3 className="font-semibold text-gray-700">Filtros</h3>
+                <span className="ml-2 text-xs text-gray-500">{movimientosFiltrados.length} resultado(s)</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <label className="text-xs text-gray-500">Mostrar</label>
+                <select
+                  className="rounded-md border border-blue-200 focus:border-blue-400 focus:ring-blue-300 bg-white px-2 py-1 text-xs outline-none"
+                  value={movimientosPorPagina}
+                  onChange={e => {
+                    setMovimientosPorPagina(Number(e.target.value));
+                    setPaginaActual(1);
+                  }}
+                >
+                  {opcionesPorPagina.map(op => (
+                    <option key={op} value={op}>{op}</option>
+                  ))}
+                </select>
+                <span className="text-xs text-gray-500">por página</span>
+              </div>
+            </div>
+            {/* Derecha: Botones de exportar y limpiar */}
+            <div className="flex flex-col gap-2 w-full md:w-auto md:flex-row md:gap-4 justify-start md:justify-end">
+              {/* Fila de exportar */}
+              <div className="flex flex-row gap-2 w-full md:w-auto">
+                <ExportButton
+                  onClick={() => exportarMovimientosAExcel(
+                    movimientosFiltrados,
+                    nombreArchivoExportacion('Filtrados', 'xlsx')
+                  )}
+                  icon={
+                    <svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path d="M16 16v2a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M7 9h6M7 13h4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M20 7v6m0 0l2-2m-2 2l-2-2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                  }
+                  title="Exportar movimientos filtrados a Excel"
+                >
+                  Exportar Excel
+                </ExportButton>
+                <ExportButton
+                  onClick={() => exportarMovimientosAPDF(
+                    movimientosFiltrados,
+                    nombreArchivoExportacion('Filtrados', 'pdf')
+                  )}
+                  icon={
+                    <svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path d="M16 16v2a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M7 9h6M7 13h4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M20 7v6m0 0l2-2m-2 2l-2-2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                  }
+                  title="Exportar movimientos filtrados a PDF"
+                >
+                  Exportar PDF
+                </ExportButton>
+              </div>
+              {/* Fila de limpiar y mostrar filtros */}
+              <div className="flex flex-row gap-2 w-full md:w-auto">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setFiltroProducto("");
+                    setFiltroMotivo("");
+                    setFiltroCategoria("todas");
+                    setFiltroMarca("todas");
+                    setFiltroTipo("todos");
+                    setFiltroFecha("");
+                  }}
+                  className="text-gray-500 hover:text-gray-700"
+                >
+                  <X size={16} className="mr-1" /> Limpiar
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setFiltrosAbiertos((v) => !v)}
+                  className="md:hidden"
+                >
+                  {filtrosAbiertos ? 'Ocultar' : 'Mostrar'} filtros
+                </Button>
+              </div>
+            </div>
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => {
-              setFiltroProducto("");
-              setFiltroMotivo("");
-              setFiltroCategoria("todas");
-              setFiltroMarca("todas");
-              setFiltroTipo("todos");
-              setFiltroFecha("");
-            }}
-            className="ml-2 text-gray-500 hover:text-gray-700"
-          >
-            <X size={16} className="mr-1" /> Limpiar
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setFiltrosAbiertos((v) => !v)}
-            className="md:hidden"
-          >
-            {filtrosAbiertos ? 'Ocultar' : 'Mostrar'} filtros
-          </Button>
         </div>
         {/* Filtros colapsables en móvil */}
         <div className={`${isMobile && !filtrosAbiertos ? 'hidden' : ''}`}>
