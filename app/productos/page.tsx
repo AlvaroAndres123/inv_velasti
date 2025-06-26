@@ -21,6 +21,8 @@ import {
 import { Plus, Pencil, Trash2, BadgeCheck, AlertTriangle, Package, PlusCircle, Search, Filter, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
+import { useToast, ToastContainer } from "@/components/ui/toast";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 
 interface Producto {
   id: number;
@@ -181,6 +183,7 @@ export default function ProductosPage() {
   const router = useRouter();
   const { productos, cargando, error, agregarProducto, actualizarProducto, eliminarProducto } = useProductos();
   const { categorias, proveedores } = useDatosAuxiliares();
+  const { toasts, success, error: showError, removeToast } = useToast();
 
   // Estados del formulario
   const [modalAbierto, setModalAbierto] = useState(false);
@@ -191,7 +194,7 @@ export default function ProductosPage() {
 
   // Estados de filtros
   const [busqueda, setBusqueda] = useState("");
-  const [categoriaFiltro, setCategoriaFiltro] = useState("");
+  const [categoriaFiltro, setCategoriaFiltro] = useState("todas");
   const [precioMin, setPrecioMin] = useState("");
   const [precioMax, setPrecioMax] = useState("");
   const [stockBajo, setStockBajo] = useState(false);
@@ -201,6 +204,11 @@ export default function ProductosPage() {
   const [nuevaCategoria, setNuevaCategoria] = useState("");
   const [errorCategoria, setErrorCategoria] = useState<string | null>(null);
   const [categoriasLocales, setCategoriasLocales] = useState<Categoria[]>([]);
+
+  // Estado para el modal de confirmación de eliminación
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [productoAEliminar, setProductoAEliminar] = useState<Producto | null>(null);
+  const [eliminando, setEliminando] = useState(false);
 
   // Debounce para la búsqueda
   const busquedaDebounced = useDebounce(busqueda, 300);
@@ -278,7 +286,7 @@ export default function ProductosPage() {
       // Validación
       if (!productoData.nombre || !productoData.descripcion || !productoData.categoriaId || 
           !productoData.proveedorId || productoData.precio <= 0 || productoData.stock < 0) {
-        alert("Por favor completa todos los campos correctamente.");
+        showError("Error de validación", "Por favor completa todos los campos correctamente.");
         return;
       }
 
@@ -288,28 +296,42 @@ export default function ProductosPage() {
 
       if (resultado.success) {
         setModalAbierto(false);
-        // Mostrar toast de éxito (implementar sistema de toasts)
-        alert(modoEdicion ? "Producto actualizado exitosamente" : "Producto agregado exitosamente");
+        success(
+          modoEdicion ? "Producto actualizado" : "Producto agregado",
+          modoEdicion 
+            ? `"${productoData.nombre}" ha sido actualizado exitosamente`
+            : `"${productoData.nombre}" ha sido agregado exitosamente`
+        );
       } else {
-        alert(resultado.error || "Error al guardar producto");
+        showError("Error al guardar", resultado.error || "Error al guardar producto");
       }
     } catch (error) {
-      alert("Error inesperado al guardar producto");
+      showError("Error inesperado", "Ocurrió un error inesperado al guardar el producto");
     } finally {
       setGuardando(false);
     }
-  }, [modoEdicion, productoActual, imagenPreview, agregarProducto, actualizarProducto]);
+  }, [modoEdicion, productoActual, imagenPreview, agregarProducto, actualizarProducto, success, showError]);
 
-  const handleEliminarProducto = useCallback(async (id: number, nombre: string) => {
-    if (!confirm(`¿Estás seguro de eliminar "${nombre}"?`)) return;
+  // Nueva función para abrir el modal de confirmación
+  const pedirConfirmacionEliminar = (producto: Producto) => {
+    setProductoAEliminar(producto);
+    setConfirmOpen(true);
+  };
 
-    const resultado = await eliminarProducto(id);
+  // Nueva función para confirmar eliminación
+  const confirmarEliminarProducto = async () => {
+    if (!productoAEliminar) return;
+    setEliminando(true);
+    const resultado = await eliminarProducto(productoAEliminar.id);
+    setEliminando(false);
+    setConfirmOpen(false);
+    setProductoAEliminar(null);
     if (resultado.success) {
-      alert("Producto eliminado exitosamente");
+      success("Producto eliminado", `"${productoAEliminar.nombre}" ha sido eliminado exitosamente`);
     } else {
-      alert(resultado.error || "Error al eliminar producto");
+      showError("Error al eliminar", resultado.error || "Error al eliminar producto");
     }
-  }, [eliminarProducto]);
+  };
 
   const agregarCategoria = useCallback(async () => {
     const nueva = nuevaCategoria.trim();
@@ -328,15 +350,17 @@ export default function ProductosPage() {
         setCategoriasLocales((prev: Categoria[]) => [...prev, nuevaCat]);
         setNuevaCategoria("");
         setModalCategoria(false);
-        alert("Categoría agregada exitosamente");
+        success("Categoría agregada", `"${nueva}" ha sido agregada exitosamente`);
       } else {
         const data = await res.json();
         setErrorCategoria(data.error || "No se pudo agregar la categoría.");
+        showError("Error al agregar categoría", data.error || "No se pudo agregar la categoría.");
       }
     } catch (error) {
       setErrorCategoria("Ocurrió un error inesperado al agregar la categoría.");
+      showError("Error inesperado", "Ocurrió un error inesperado al agregar la categoría.");
     }
-  }, [nuevaCategoria]);
+  }, [nuevaCategoria, success, showError]);
 
   const limpiarFiltros = useCallback(() => {
     setBusqueda("");
@@ -379,6 +403,9 @@ export default function ProductosPage() {
 
   return (
     <div className="p-6">
+      {/* Toast Container */}
+      <ToastContainer toasts={toasts} onClose={removeToast} />
+      
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
         <h2 className="text-3xl font-bold text-gray-800 flex items-center gap-2">
@@ -401,7 +428,7 @@ export default function ProductosPage() {
         <div className="flex items-center gap-2 mb-4">
           <Filter className="text-blue-500" size={20} />
           <h3 className="font-semibold text-gray-700">Filtros</h3>
-          {(busqueda || categoriaFiltro || precioMin || precioMax || stockBajo) && (
+          {(busqueda || categoriaFiltro !== "todas" || precioMin || precioMax || stockBajo) && (
             <Button
               variant="ghost"
               size="sm"
@@ -541,17 +568,8 @@ export default function ProductosPage() {
                     <Button
                       variant="outline"
                       size="icon"
-                      onClick={() => abrirModalEditar(prod)}
+                      onClick={() => pedirConfirmacionEliminar(prod)}
                       className="hover:bg-blue-100"
-                      title="Editar"
-                    >
-                      <Pencil size={16} />
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      className="hover:bg-red-100 text-red-500"
-                      onClick={() => handleEliminarProducto(prod.id, prod.nombre)}
                       title="Eliminar"
                     >
                       <Trash2 size={16} />
@@ -630,17 +648,8 @@ export default function ProductosPage() {
                       <Button
                         variant="outline"
                         size="icon"
-                        onClick={() => abrirModalEditar(prod)}
+                        onClick={() => pedirConfirmacionEliminar(prod)}
                         className="hover:bg-blue-100"
-                        title="Editar"
-                      >
-                        <Pencil size={16} />
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="hover:bg-red-100 text-red-500"
-                        onClick={() => handleEliminarProducto(prod.id, prod.nombre)}
                         title="Eliminar"
                       >
                         <Trash2 size={16} />
@@ -838,6 +847,18 @@ export default function ProductosPage() {
           </form>
         </DialogContent>
       </Dialog>
+
+      {/* Modal de confirmación de eliminación */}
+      <ConfirmDialog
+        open={confirmOpen}
+        title="¿Eliminar producto?"
+        message={productoAEliminar ? `¿Estás seguro de eliminar "${productoAEliminar.nombre}"? Esta acción no se puede deshacer.` : ""}
+        confirmText="Eliminar"
+        cancelText="Cancelar"
+        loading={eliminando}
+        onConfirm={confirmarEliminarProducto}
+        onCancel={() => { setConfirmOpen(false); setProductoAEliminar(null); }}
+      />
     </div>
   );
 }
