@@ -259,6 +259,59 @@ export default function ProductosPage() {
   const [productosPorPagina, setProductosPorPagina] = useState(12);
   const opcionesPorPagina = [8, 12, 16, 24, 32];
 
+  // Estado para selección masiva
+  const [seleccionados, setSeleccionados] = useState<number[]>([]);
+  const productosPaginados = productos.slice((paginaActual - 1) * productosPorPagina, paginaActual * productosPorPagina);
+  const todosSeleccionados = productosPaginados.length > 0 && productosPaginados.every((p: Producto) => seleccionados.includes(p.id));
+  const toggleSeleccion = (id: number) => {
+    setSeleccionados(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  };
+  const toggleSeleccionTodos = () => {
+    if (todosSeleccionados) {
+      setSeleccionados(prev => prev.filter(id => !productosPaginados.some((p: Producto) => p.id === id)));
+    } else {
+      setSeleccionados(prev => [...prev, ...productosPaginados.filter((p: Producto) => !prev.includes(p.id)).map((p: Producto) => p.id)]);
+    }
+  };
+  const limpiarSeleccion = () => setSeleccionados([]);
+  // Acciones masivas
+  const eliminarSeleccionados = async () => {
+    if (seleccionados.length === 0) return;
+    if (!window.confirm(`¿Seguro que deseas eliminar ${seleccionados.length} producto(s)? Esta acción no se puede deshacer.`)) return;
+    for (const id of seleccionados) {
+      await eliminarProducto(id);
+    }
+    limpiarSeleccion();
+    success('Productos eliminados', 'Los productos seleccionados han sido eliminados.');
+  };
+  const destacarSeleccionados = async (destacar: boolean) => {
+    for (const id of seleccionados) {
+      const prod = productos.find(p => p.id === id);
+      if (prod && prod.destacado !== destacar) {
+        await actualizarProducto(id, { destacado: destacar });
+      }
+    }
+    limpiarSeleccion();
+    success(destacar ? 'Productos destacados' : 'Destacado removido', destacar ? 'Los productos seleccionados ahora son destacados.' : 'Los productos seleccionados ya no son destacados.');
+  };
+
+  // Estados para selección masiva de categoría y proveedor
+  const [categoriaMasiva, setCategoriaMasiva] = useState<string>("");
+  const [proveedorMasiva, setProveedorMasiva] = useState<string>("");
+  const aplicarCategoriaProveedor = async () => {
+    if (!categoriaMasiva && !proveedorMasiva) return;
+    for (const id of seleccionados) {
+      const data: any = {};
+      if (categoriaMasiva) data.categoria = parseInt(categoriaMasiva);
+      if (proveedorMasiva) data.proveedor = parseInt(proveedorMasiva);
+      await actualizarProducto(id, data);
+    }
+    limpiarSeleccion();
+    setCategoriaMasiva("");
+    setProveedorMasiva("");
+    success('Actualización masiva', 'Los productos seleccionados han sido actualizados.');
+  };
+
   // Memoización de productos filtrados y ordenados
   const productosFiltrados = useMemo(() => {
     let filtrados = productos.filter((prod) => {
@@ -300,7 +353,7 @@ export default function ProductosPage() {
 
   // Calcular productos a mostrar según paginación
   const totalPaginas = Math.max(1, Math.ceil(productosFiltrados.length / productosPorPagina));
-  const productosPaginados = productosFiltrados.slice((paginaActual - 1) * productosPorPagina, paginaActual * productosPorPagina);
+  const productosPaginadosFiltrados = productosFiltrados.slice((paginaActual - 1) * productosPorPagina, paginaActual * productosPorPagina);
 
   // Funciones de manejo
   const abrirModalAgregar = useCallback(() => {
@@ -706,7 +759,7 @@ export default function ProductosPage() {
                 </motion.div>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-                  {productosPaginados.map((prod) => (
+                  {productosPaginadosFiltrados.map((prod) => (
                     <motion.div
                       key={prod.id}
                       initial={{ opacity: 0, y: 20 }}
@@ -714,20 +767,23 @@ export default function ProductosPage() {
                       exit={{ opacity: 0, y: 20 }}
                       className="relative bg-white rounded-2xl shadow-lg p-6 flex flex-col h-full border border-blue-50 hover:shadow-xl transition group"
                     >
-                      {/* Icono de destacado */}
-                      <button
-                        type="button"
-                        onClick={() => toggleDestacado(prod)}
-                        className="absolute top-3 left-3 z-20 p-1 rounded-full bg-white shadow-md hover:bg-yellow-100 transition"
-                        title={prod.destacado ? "Quitar destacado" : "Destacar"}
-                      >
-                        <Star
-                          size={22}
-                          className={prod.destacado ? "text-yellow-400 fill-yellow-300" : "text-gray-300"}
-                          strokeWidth={2}
-                          fill={prod.destacado ? "#fde047" : "none"}
-                        />
-                      </button>
+                      {/* Contenedor de estrella y checkbox, siempre visible, alineados arriba a la izquierda */}
+                      <div className="absolute top-3 left-3 z-20 flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => toggleDestacado(prod)}
+                          className="p-1 rounded-full bg-white shadow-md hover:bg-yellow-100 transition"
+                          title={prod.destacado ? "Quitar destacado" : "Destacar"}
+                        >
+                          <Star
+                            size={22}
+                            className={prod.destacado ? "text-yellow-400 fill-yellow-300" : "text-gray-300"}
+                            strokeWidth={2}
+                            fill={prod.destacado ? "#fde047" : "none"}
+                          />
+                        </button>
+                        <input type="checkbox" checked={seleccionados.includes(prod.id)} onChange={() => toggleSeleccion(prod.id)} className="w-5 h-5 rounded border-gray-300 focus:ring-blue-400" />
+                      </div>
                       {/* Etiqueta de stock pegada */}
                       <div className="absolute top-3 -right-4 z-10 shadow-md rounded-l-full px-3 py-1 text-xs font-semibold flex items-center gap-1
                         bg-green-100 text-green-700"
@@ -834,6 +890,9 @@ export default function ProductosPage() {
           <table className="min-w-full text-sm text-left text-gray-700 bg-white">
             <thead className="bg-gray-100 text-xs uppercase text-gray-500">
               <tr>
+                <th className="px-4 py-4 w-8 text-center">
+                  <input type="checkbox" checked={todosSeleccionados} onChange={toggleSeleccionTodos} />
+                </th>
                 <th className="px-6 py-4">Imagen</th>
                 <th className="px-6 py-4">Nombre</th>
                 <th className="px-6 py-4">Categoría</th>
@@ -855,8 +914,11 @@ export default function ProductosPage() {
                   </td>
                 </tr>
               ) : (
-                productosPaginados.map((prod) => (
+                productosPaginadosFiltrados.map((prod) => (
                   <tr key={prod.id} className="border-t hover:bg-blue-50/40 transition">
+                    <td className="px-4 py-4 text-center">
+                      <input type="checkbox" checked={seleccionados.includes(prod.id)} onChange={() => toggleSeleccion(prod.id)} />
+                    </td>
                     <td className="px-6 py-4">
                       {prod.imagen ? (
                         <img
@@ -871,7 +933,7 @@ export default function ProductosPage() {
                         </div>
                       )}
                     </td>
-                    <td className="px-6 py-4 font-medium flex items-center gap-2">
+                    <td className="px-6 py-4 font-medium flex items-center gap-2 h-20">
                       <button
                         type="button"
                         onClick={() => toggleDestacado(prod)}
@@ -1156,6 +1218,48 @@ export default function ProductosPage() {
         onConfirm={confirmarEliminarProducto}
         onCancel={() => { setConfirmOpen(false); setProductoAEliminar(null); }}
       />
+
+      {/* Panel de acciones masivas fijo arriba */}
+      {seleccionados.length > 0 && (
+        <div className="fixed top-0 left-0 w-full z-40 bg-white border-b shadow flex flex-wrap items-center gap-4 px-6 py-3 animate-fade-in pt-14 md:pt-0">
+          <span className="font-semibold text-blue-700">{seleccionados.length} seleccionado(s)</span>
+          <Button variant="destructive" size="sm" onClick={eliminarSeleccionados}>
+            <Trash2 size={16} /> Eliminar
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => destacarSeleccionados(true)}>
+            <Star size={16} className="text-yellow-400" fill="#fde047" /> Destacar
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => destacarSeleccionados(false)}>
+            <Star size={16} className="text-gray-300" /> Quitar destacado
+          </Button>
+          {/* Select de categoría masiva */}
+          <select
+            className="rounded-md border border-blue-200 focus:border-blue-400 focus:ring-blue-300 bg-white h-9 text-sm px-2"
+            value={categoriaMasiva}
+            onChange={e => setCategoriaMasiva(e.target.value)}
+          >
+            <option value="">Cambiar categoría</option>
+            {categoriasLocales.map(cat => (
+              <option key={cat.id} value={cat.id}>{cat.nombre}</option>
+            ))}
+          </select>
+          {/* Select de proveedor masivo */}
+          <select
+            className="rounded-md border border-blue-200 focus:border-blue-400 focus:ring-blue-300 bg-white h-9 text-sm px-2"
+            value={proveedorMasiva}
+            onChange={e => setProveedorMasiva(e.target.value)}
+          >
+            <option value="">Cambiar proveedor</option>
+            {proveedores.map(prov => (
+              <option key={prov.id} value={prov.id}>{prov.nombre}</option>
+            ))}
+          </select>
+          <Button variant="default" size="sm" onClick={aplicarCategoriaProveedor} disabled={!categoriaMasiva && !proveedorMasiva}>
+            Aplicar
+          </Button>
+          <Button variant="ghost" size="sm" onClick={limpiarSeleccion}>Cancelar</Button>
+        </div>
+      )}
     </div>
   );
 }
