@@ -672,7 +672,7 @@ const movimiento = {
           </div>
         </div>
         {/* Vista de movimientos */}
-        {(isMobile || vista === 'tarjetas') ? (
+        {vista === 'tarjetas' ? (
           <>
             {movimientosPaginados.length === 0 ? (
               <div className="flex flex-col items-center justify-center min-h-[180px] w-full text-blue-500 bg-white rounded-xl shadow p-6 my-8">
@@ -776,7 +776,7 @@ const movimiento = {
                   </span>
                 </div>
               ) : (
-                <div className="hidden sm:block overflow-x-auto rounded-xl shadow bg-white mt-6">
+                <div className="overflow-x-auto rounded-xl shadow bg-white mt-6">
                   <table className="min-w-full text-sm text-left text-gray-700 bg-white border-separate border-spacing-0">
                     <thead className="bg-gray-200 text-xs uppercase text-gray-500">
                       <tr>
