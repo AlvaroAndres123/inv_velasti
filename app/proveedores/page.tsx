@@ -15,6 +15,12 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { useToast, ToastContainer } from "@/components/ui/toast";
+import { saveAs } from "file-saver";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
+import ExcelJS from "exceljs";
+import { MultiSelect } from "@/components/ui/MultiSelect";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 
 interface Proveedor {
   id: number;
@@ -44,6 +50,29 @@ export default function ProveedoresPage() {
   // Estados para feedback
   const { toasts, success, error: showError, removeToast } = useToast();
 
+  // Estados para selección masiva
+  const [seleccionados, setSeleccionados] = useState<number[]>([]);
+  const toggleSeleccion = (id: number) => {
+    setSeleccionados(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  };
+  const toggleSeleccionTodos = () => {
+    const idsPagina = proveedoresPaginados.map(p => p.id);
+    const todosSeleccionados = idsPagina.every(id => seleccionados.includes(id));
+    if (todosSeleccionados) {
+      setSeleccionados(prev => prev.filter(id => !idsPagina.includes(id)));
+    } else {
+      setSeleccionados(prev => [...prev, ...idsPagina.filter(id => !prev.includes(id))]);
+    }
+  };
+  const limpiarSeleccion = () => setSeleccionados([]);
+
+  // Estados para confirmación de eliminación
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [proveedorAEliminar, setProveedorAEliminar] = useState<Proveedor | null>(null);
+  const [eliminando, setEliminando] = useState(false);
+
+  const [cargando, setCargando] = useState(true);
+
   useEffect(() => {
     const user = localStorage.getItem("usuario");
     if (!user) {
@@ -52,6 +81,7 @@ export default function ProveedoresPage() {
   }, [router]);
 
   useEffect(() => {
+    setCargando(true);
     fetch("/api/proveedores")
       .then((res) => res.json())
       .then((data) => {
@@ -63,7 +93,8 @@ export default function ProveedoresPage() {
       })
       .catch((err) => {
         console.error("Error al cargar proveedores", err);
-      });
+      })
+      .finally(() => setCargando(false));
   }, []);
 
   const abrirModalAgregar = () => {
@@ -145,42 +176,223 @@ export default function ProveedoresPage() {
     setPaginaActual(1);
   }, [busqueda, proveedoresPorPagina]);
 
+  // Exportar a Excel
+  function nombreArchivoExportacion(tipo: 'Seleccionados' | 'Filtrados', extension: 'xlsx' | 'pdf') {
+    const fecha = new Date();
+    const yyyy = fecha.getFullYear();
+    const mm = String(fecha.getMonth() + 1).padStart(2, '0');
+    const dd = String(fecha.getDate()).padStart(2, '0');
+    return `AlmaSoft_Proveedores_${yyyy}${mm}${dd}_${tipo}.${extension}`;
+  }
+  function exportarProveedoresAExcel(proveedoresExportar: Proveedor[], nombreArchivo: string) {
+    if (!proveedoresExportar.length) return;
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet("Proveedores");
+    worksheet.mergeCells("A1:E1");
+    const logoCell = worksheet.getCell("A1");
+    logoCell.value = "Proveedores";
+    logoCell.font = { name: "Calibri", bold: true, size: 22, color: { argb: "FF2196F3" } };
+    logoCell.alignment = { horizontal: "center", vertical: "middle" };
+    worksheet.addRow([]);
+    worksheet.columns = [
+      { header: "Nombre", key: "nombre", width: 24 },
+      { header: "Contacto", key: "contacto", width: 20 },
+      { header: "Teléfono", key: "telefono", width: 16 },
+      { header: "Correo", key: "correo", width: 28 },
+      { header: "Dirección", key: "direccion", width: 32 },
+    ];
+    proveedoresExportar.forEach((p) => {
+      worksheet.addRow({
+        nombre: p.nombre,
+        contacto: p.contacto,
+        telefono: p.telefono,
+        correo: p.correo,
+        direccion: p.direccion,
+      });
+    });
+    const headerRowIdx = 3;
+    worksheet.getRow(headerRowIdx).eachCell((cell) => {
+      cell.font = { bold: true, color: { argb: "FFFFFFFF" } };
+      cell.fill = {
+        type: "pattern",
+        pattern: "solid",
+        fgColor: { argb: "FF2196F3" },
+      };
+      cell.alignment = { horizontal: "center" };
+      cell.border = {
+        top: { style: "thin", color: { argb: "FFAAAAAA" } },
+        bottom: { style: "thin", color: { argb: "FFAAAAAA" } },
+        left: { style: "thin", color: { argb: "FFAAAAAA" } },
+        right: { style: "thin", color: { argb: "FFAAAAAA" } },
+      };
+    });
+    worksheet.eachRow((row, rowNumber) => {
+      if (rowNumber < headerRowIdx) return;
+      row.eachCell((cell) => {
+        cell.border = {
+          top: { style: "thin", color: { argb: "FFAAAAAA" } },
+          bottom: { style: "thin", color: { argb: "FFAAAAAA" } },
+          left: { style: "thin", color: { argb: "FFAAAAAA" } },
+          right: { style: "thin", color: { argb: "FFAAAAAA" } },
+        };
+        cell.font = cell.font || { name: "Calibri", size: 11 };
+      });
+    });
+    const colCount = worksheet.getRow(headerRowIdx).cellCount;
+    const lastCol = String.fromCharCode(64 + colCount);
+    worksheet.autoFilter = {
+      from: `A${headerRowIdx}`,
+      to: `${lastCol}${headerRowIdx}`,
+    };
+    const fecha = new Date().toLocaleDateString();
+    const pieRow = worksheet.addRow([]);
+    pieRow.getCell(1).value = `Exportado desde AlmaSoft - Fecha: ${fecha}`;
+    worksheet.mergeCells(`A${pieRow.number}:E${pieRow.number}`);
+    pieRow.getCell(1).alignment = { horizontal: "center" };
+    pieRow.getCell(1).font = { color: { argb: "FF888888" }, italic: true, size: 11 };
+    workbook.xlsx.writeBuffer().then((buffer) => {
+      const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+      saveAs(blob, nombreArchivo);
+    });
+  }
+  function exportarProveedoresAPDF(proveedoresExportar: Proveedor[], nombreArchivo: string) {
+    if (!proveedoresExportar.length) return;
+    const doc = new jsPDF();
+    doc.setFontSize(22);
+    doc.setTextColor(33, 150, 243);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Proveedores', doc.internal.pageSize.getWidth() / 2, 22, { align: 'center' });
+    doc.setDrawColor(33, 150, 243);
+    doc.setLineWidth(1);
+    doc.line(20, 28, doc.internal.pageSize.getWidth() - 20, 28);
+    const columns = [
+      { header: "Nombre", dataKey: "nombre" },
+      { header: "Contacto", dataKey: "contacto" },
+      { header: "Teléfono", dataKey: "telefono" },
+      { header: "Correo", dataKey: "correo" },
+      { header: "Dirección", dataKey: "direccion" },
+    ];
+    const data = proveedoresExportar.map((p) => ({
+      nombre: p.nombre,
+      contacto: p.contacto,
+      telefono: p.telefono,
+      correo: p.correo,
+      direccion: p.direccion,
+    }));
+    autoTable(doc, {
+      startY: 34,
+      head: [columns.map(col => col.header)],
+      body: data.map(row => columns.map(col => (row as any)[col.dataKey])),
+      styles: { fontSize: 10, cellPadding: 3, font: 'helvetica', textColor: [33, 37, 41] },
+      headStyles: { fillColor: [33, 150, 243], textColor: 255, fontStyle: 'bold', fontSize: 11 },
+      alternateRowStyles: { fillColor: [240, 248, 255] },
+      tableLineColor: [180, 180, 180],
+      tableLineWidth: 0.3,
+      margin: { left: 14, right: 14 },
+      tableWidth: 'auto',
+    });
+    const fecha = new Date().toLocaleDateString();
+    doc.setFontSize(10);
+    doc.setTextColor(150, 150, 150);
+    doc.setFont('helvetica', 'italic');
+    doc.text(
+      `Exportado desde AlmaSoft - Fecha: ${fecha}`,
+      doc.internal.pageSize.getWidth() / 2,
+      doc.internal.pageSize.getHeight() - 10,
+      { align: 'center' }
+    );
+    doc.save(nombreArchivo);
+  }
+
+  const pedirConfirmacionEliminar = (prov: Proveedor) => {
+    setProveedorAEliminar(prov);
+    setConfirmOpen(true);
+  };
+  const confirmarEliminarProveedor = async () => {
+    if (!proveedorAEliminar) return;
+    setEliminando(true);
+    await eliminarProveedor(proveedorAEliminar.id);
+    setEliminando(false);
+    setConfirmOpen(false);
+    setProveedorAEliminar(null);
+  };
+
+  if (cargando) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="flex flex-col items-center gap-4">
+          <svg className="animate-spin h-20 w-20 text-blue-500" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+          </svg>
+          <span className="text-blue-600 font-medium">Cargando proveedores...</span>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#f6f8fa] flex flex-col items-center justify-start py-4">
-      <div className="w-full max-w-5xl bg-white rounded-2xl shadow-xl border border-gray-200 p-4 sm:p-8 mx-auto">
+      <div className="w-full max-w-5xl p-4 sm:p-8 mx-auto">
         <ToastContainer toasts={toasts} onClose={removeToast} />
         {/* Encabezado */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-          <div className="flex items-center gap-2">
-            <Package className="text-blue-500" size={32} />
-            <h2 className="text-3xl font-bold text-gray-800">Proveedores</h2>
-            <span className="text-sm font-normal text-gray-500 ml-2">({proveedoresFiltrados.length} de {proveedores.length})</span>
-          </div>
+        <div className="flex items-center gap-2 mb-6">
+          <Package className="text-blue-500" size={32} />
+          <h2 className="text-3xl font-bold text-gray-800">Proveedores</h2>
+          <span className="text-sm font-normal text-gray-500 ml-2">({proveedoresFiltrados.length} de {proveedores.length})</span>
         </div>
-        {/* Filtros y buscador */}
-        <div className="mb-6 bg-[#f8fafc] rounded-xl shadow-sm border border-gray-100 p-4">
-          <div className="flex flex-wrap items-center gap-2 mb-2 justify-between">
-            <div className="flex items-center gap-2">
-              <Table size={18} className="text-blue-500" />
-              <h3 className="font-semibold text-gray-700 ml-2">Listado</h3>
-              <span className="ml-2 text-xs text-gray-500">{proveedoresFiltrados.length} resultado(s)</span>
-            </div>
-            <div className="flex items-center gap-2 mt-2 sm:mt-0">
-              <label className="text-xs text-gray-500">Mostrar</label>
-              <select
-                className="rounded-md border border-blue-200 focus:border-blue-400 focus:ring-blue-300 bg-white h-8 text-sm px-2"
-                value={proveedoresPorPagina}
-                onChange={e => {
-                  setProveedoresPorPagina(Number(e.target.value));
-                  setPaginaActual(1);
-                }}
-              >
-                {opcionesPorPagina.map(op => (
-                  <option key={op} value={op}>{op}</option>
-                ))}
-              </select>
-              <span className="text-xs text-gray-500">por página</span>
-            </div>
+        {/* Filtros avanzados */}
+        <div className="mb-4">
+          <div className="flex flex-wrap items-center gap-2 mb-2">
+            <Table size={18} className="text-blue-500" />
+            <h3 className="font-semibold text-gray-700">Listado</h3>
+            <span className="ml-2 text-xs text-gray-500">{proveedoresFiltrados.length} resultado(s)</span>
+            <label className="ml-4 text-xs text-gray-500">Mostrar</label>
+            <select
+              className="rounded-md border border-blue-200 focus:border-blue-400 focus:ring-blue-300 bg-white h-8 text-sm px-2"
+              value={proveedoresPorPagina}
+              onChange={e => {
+                setProveedoresPorPagina(Number(e.target.value));
+                setPaginaActual(1);
+              }}
+            >
+              {opcionesPorPagina.map(op => (
+                <option key={op} value={op}>{op}</option>
+              ))}
+            </select>
+            <span className="text-xs text-gray-500">por página</span>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => { setBusqueda(""); limpiarSeleccion(); }}
+              className="ml-auto text-gray-500 hover:text-gray-700"
+            >
+              Limpiar
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => exportarProveedoresAExcel(
+                seleccionados.length > 0 ? proveedores.filter(p => seleccionados.includes(p.id)) : proveedoresFiltrados,
+                nombreArchivoExportacion(seleccionados.length > 0 ? 'Seleccionados' : 'Filtrados', 'xlsx')
+              )}
+              className="ml-2 flex items-center gap-1"
+              title={seleccionados.length > 0 ? "Exportar seleccionados a Excel" : "Exportar proveedores filtrados a Excel"}
+            >
+              Exportar Excel
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => exportarProveedoresAPDF(
+                seleccionados.length > 0 ? proveedores.filter(p => seleccionados.includes(p.id)) : proveedoresFiltrados,
+                nombreArchivoExportacion(seleccionados.length > 0 ? 'Seleccionados' : 'Filtrados', 'pdf')
+              )}
+              className="ml-2 flex items-center gap-1"
+              title={seleccionados.length > 0 ? "Exportar seleccionados a PDF" : "Exportar proveedores filtrados a PDF"}
+            >
+              Exportar PDF
+            </Button>
           </div>
           <div className="relative w-full mt-2">
             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-blue-400 pointer-events-none">
@@ -195,7 +407,7 @@ export default function ProveedoresPage() {
           </div>
         </div>
         {/* Tabla moderna y responsive */}
-        <div className="overflow-x-auto rounded-xl shadow bg-white">
+        <div className="overflow-x-auto">
           <table className="min-w-full text-sm text-left text-gray-700 bg-white border-separate border-spacing-0">
             <thead className="bg-gray-200 text-xs uppercase text-gray-500">
               <tr>
@@ -276,7 +488,7 @@ export default function ProveedoresPage() {
                           variant="ghost"
                           size="icon"
                           className="text-red-500"
-                          onClick={() => eliminarProveedor(prov.id)}
+                          onClick={() => pedirConfirmacionEliminar(prov)}
                           title="Eliminar proveedor"
                         >
                           <Trash2 size={16} />
@@ -397,6 +609,17 @@ export default function ProveedoresPage() {
             </form>
           </DialogContent>
         </Dialog>
+        {/* Confirmación de eliminación */}
+        <ConfirmDialog
+          open={confirmOpen}
+          onConfirm={confirmarEliminarProveedor}
+          onCancel={() => { setConfirmOpen(false); setProveedorAEliminar(null); }}
+          title="Confirmar eliminación"
+          message={`¿Estás seguro de que quieres eliminar el proveedor "${proveedorAEliminar?.nombre}"?`}
+          confirmText="Eliminar"
+          cancelText="Cancelar"
+          loading={eliminando}
+        />
       </div>
     </div>
   );
