@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Plus, Pencil, Trash2, Truck, Search, Filter, Table, LayoutGrid } from "lucide-react";
+import { Plus, Pencil, Trash2, Truck, Search, Filter, Table, LayoutGrid, X } from "lucide-react";
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
@@ -453,9 +453,11 @@ export default function ProveedoresPage() {
               variant="ghost"
               size="sm"
               onClick={() => { setBusqueda(""); limpiarSeleccion(); }}
-              className="ml-auto text-gray-500 hover:text-gray-700"
+              className="text-gray-500 hover:text-gray-700 order-1"
             >
-              Limpiar
+              <span className="flex items-center gap-1">
+                <X size={16} /> Limpiar
+              </span>
             </Button>
             <ExportButton
               onClick={() => exportarProveedoresAExcel(
