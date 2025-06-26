@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { List } from "lucide-react";
 import AutoCompleteProducto from "@/components/AutoCompleteProducto";
 import { Input } from "@/components/ui/input";
@@ -21,8 +21,9 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Plus } from "lucide-react";
-import { useRef, useEffect } from "react";
+import { useRef } from "react";
 import { useRouter } from "next/navigation";
+import { formatearFecha, formatearFechaCorta } from "@/lib/utils";
 
 interface Movimiento {
   productoId: number;
@@ -231,7 +232,7 @@ const movimiento = {
                 "Motivo",
               ];
               const filas = movimientosFiltrados.map((m) => [
-                m.fecha,
+                formatearFechaCorta(m.fecha),
                 m.tipo,
                 m.producto,
                 m.cantidad.toString(),
@@ -271,7 +272,7 @@ const movimiento = {
           <tbody>
             {movimientosFiltrados.map((mov) => (
               <tr key={mov.id} className="border-t hover:bg-gray-50">
-                <td className="px-4 py-3 sm:px-6 sm:py-4">{mov.fecha}</td>
+                <td className="px-4 py-3 sm:px-6 sm:py-4">{formatearFecha(mov.fecha)}</td>
                 <td
                   className={`px-4 py-3 sm:px-6 sm:py-4 font-semibold ${
                     mov.tipo === "entrada" ? "text-green-600" : "text-red-600"

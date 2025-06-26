@@ -38,6 +38,7 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart";
+import { formatearSoloFecha } from "@/lib/utils";
 
 const meses = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio"];
 const años = ["2023", "2024", "2025"];
@@ -149,6 +150,10 @@ export default function Home() {
         (a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime()
       )[0]?.fecha || "Sin datos";
 
+  const ultimaEntradaFormateada = ultimaEntrada !== "Sin datos" 
+    ? formatearSoloFecha(ultimaEntrada) 
+    : "Sin datos";
+
   const ventasHoy = movimientos
     .filter((mov) => mov.tipo === "salida" && mov.fecha.startsWith(hoyStr))
     .reduce((acc, mov) => acc + mov.cantidad * mov.valor, 0);
@@ -242,7 +247,7 @@ export default function Home() {
 
         <InfoCard
           title="Última entrada"
-          value={ultimaEntrada}
+          value={ultimaEntradaFormateada}
           color="text-green-600"
         />
         <InfoCard

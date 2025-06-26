@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { formatearFechaCorta } from '@/lib/utils';
 
 interface Salida {
   id: number;
@@ -108,7 +109,7 @@ export default function SalidasPage() {
           <tbody>
             {salidas.map((salida) => (
               <tr key={salida.id} className="border-b hover:bg-gray-50">
-                <td className="px-6 py-4">{salida.fecha}</td>
+                <td className="px-6 py-4">{formatearFechaCorta(salida.fecha)}</td>
                 <td className="px-6 py-4">{salida.producto}</td>
                 <td className="px-6 py-4">{salida.cantidad}</td>
                 <td className="px-6 py-4">{salida.motivo}</td>
