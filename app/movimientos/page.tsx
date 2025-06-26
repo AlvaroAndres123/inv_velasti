@@ -115,6 +115,30 @@ export default function MovimientosPage() {
   const [filtroCategoria, setFiltroCategoria] = useState("todas");
   const [filtroMarca, setFiltroMarca] = useState("todas");
 
+  // Motivos únicos para autocomplete
+  const motivosUnicos = Array.from(new Set(movimientos.map(m => m.motivo))).filter(Boolean);
+  const productosUnicos = productos.map(p => p.nombre);
+
+  // Cargar filtros desde localStorage al montar
+  useEffect(() => {
+    const saved = localStorage.getItem('filtrosMovimientos');
+    if (saved) {
+      const f = JSON.parse(saved);
+      setFiltroProducto(f.filtroProducto || "");
+      setFiltroMotivo(f.filtroMotivo || "");
+      setFiltroCategoria(f.filtroCategoria || "todas");
+      setFiltroMarca(f.filtroMarca || "todas");
+      setFiltroTipo(f.filtroTipo || "todos");
+      setFiltroFecha(f.filtroFecha || "");
+    }
+  }, []);
+  // Guardar filtros en localStorage al cambiar
+  useEffect(() => {
+    localStorage.setItem('filtrosMovimientos', JSON.stringify({
+      filtroProducto, filtroMotivo, filtroCategoria, filtroMarca, filtroTipo, filtroFecha
+    }));
+  }, [filtroProducto, filtroMotivo, filtroCategoria, filtroMarca, filtroTipo, filtroFecha]);
+
   // useEffect para cargar productos
   useEffect(() => {
     fetch("/api/productos")
@@ -381,89 +405,184 @@ const movimiento = {
     );
   }
 
+  function renderPaginacion({ paginaActual, totalPaginas, setPaginaActual }: { paginaActual: number, totalPaginas: number, setPaginaActual: (n: number) => void }) {
+    const paginas = [];
+    if (totalPaginas <= 7) {
+      for (let i = 1; i <= totalPaginas; i++) {
+        paginas.push(i);
+      }
+    } else {
+      paginas.push(1);
+      if (paginaActual > 4) paginas.push('...');
+      for (let i = Math.max(2, paginaActual - 2); i <= Math.min(totalPaginas - 1, paginaActual + 2); i++) {
+        if (i === 1 || i === totalPaginas) continue;
+        paginas.push(i);
+      }
+      if (paginaActual < totalPaginas - 3) paginas.push('...');
+      paginas.push(totalPaginas);
+    }
+    return (
+      <div className="flex justify-center items-center gap-2 mt-8">
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={paginaActual === 1}
+          onClick={() => setPaginaActual(paginaActual - 1)}
+        >Anterior</Button>
+        {paginas.map((num, idx) =>
+          num === '...'
+            ? <span key={`ellipsis-${idx}`} className="px-2 text-gray-400">...</span>
+            : <Button
+                key={num}
+                variant={paginaActual === num ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setPaginaActual(num as number)}
+                className={paginaActual === num ? 'bg-blue-600 text-white' : ''}
+              >{num}</Button>
+        )}
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={paginaActual === totalPaginas}
+          onClick={() => setPaginaActual(paginaActual + 1)}
+        >Siguiente</Button>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#f6f8fa] flex flex-col items-center justify-start py-4">
       <div className="w-full max-w-7xl px-4 sm:px-8 mx-auto">
-        {/* Encabezado */}
-        <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-4 mb-2">
+        {/* Encabezado y botones de cambio de vista */}
+        <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-4 mb-2 justify-between">
           <div className="flex items-center gap-2">
             <ArrowLeftRight size={28} className="text-blue-500" />
             <h2 className="text-2xl sm:text-3xl font-bold text-gray-800 leading-tight">Movimientos de inventario</h2>
           </div>
-          <div className="flex flex-col sm:flex-row gap-2 md:ml-4 justify-center md:justify-start mt-2 md:mt-0 items-center">
-            <div className="flex flex-row sm:flex-row gap-2 w-full justify-center">
-              <span className="px-3 py-1 rounded-full bg-gray-200 text-gray-700 text-xs font-semibold flex items-center gap-1"><Table size={14}/> {movimientos.length} total</span>
-              <span className="px-3 py-1 rounded-full bg-green-100 text-green-700 text-xs font-semibold flex items-center gap-1"><BadgeCheck size={14}/> Entradas: {totalEntradas}</span>
-              <span className="px-3 py-1 rounded-full bg-red-100 text-red-600 text-xs font-semibold flex items-center gap-1"><AlertTriangle size={14}/> Salidas: {totalSalidas}</span>
-            </div>
+          <div className="flex gap-2 mt-2 md:mt-0">
+            <Button
+              variant={vista === 'tabla' ? 'default' : 'outline'}
+              size="icon"
+              aria-label="Vista tabla"
+              className={vista === 'tabla' ? 'bg-blue-600 text-white' : ''}
+              onClick={() => setVista('tabla')}
+            >
+              <Table size={20} />
+            </Button>
+            <Button
+              variant={vista === 'tarjetas' ? 'default' : 'outline'}
+              size="icon"
+              aria-label="Vista tarjetas"
+              className={vista === 'tarjetas' ? 'bg-blue-600 text-white' : ''}
+              onClick={() => setVista('tarjetas')}
+            >
+              <LayoutGrid size={20} />
+            </Button>
           </div>
+        </div>
+        {/* Filtros y botones de exportación alineados */}
+        <div className="flex flex-wrap items-center gap-2 mb-2">
+          <Filter className="text-blue-500" size={20} />
+          <h3 className="font-semibold text-gray-700">Filtros</h3>
+          <span className="ml-2 text-xs text-gray-500">{movimientosFiltrados.length} resultado(s)</span>
+          <label className="ml-4 text-xs text-gray-500">Mostrar</label>
+          <select
+            className="rounded-md border border-blue-200 focus:border-blue-400 focus:ring-blue-300 bg-white h-8 text-sm px-2"
+            value={movimientosPorPagina}
+            onChange={e => {
+              setMovimientosPorPagina(Number(e.target.value));
+              setPaginaActual(1);
+            }}
+          >
+            {opcionesPorPagina.map(op => (
+              <option key={op} value={op}>{op}</option>
+            ))}
+          </select>
+          <span className="text-xs text-gray-500">por página</span>
+          <div className="flex gap-2 ml-auto">
+            <ExportButton
+              onClick={() => exportarMovimientosAExcel(
+                movimientosFiltrados,
+                nombreArchivoExportacion('Filtrados', 'xlsx')
+              )}
+              icon={
+                <svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path d="M16 16v2a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M7 9h6M7 13h4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M20 7v6m0 0l2-2m-2 2l-2-2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              }
+              title="Exportar movimientos filtrados a Excel"
+            >
+              Exportar Excel
+            </ExportButton>
+            <ExportButton
+              onClick={() => exportarMovimientosAPDF(
+                movimientosFiltrados,
+                nombreArchivoExportacion('Filtrados', 'pdf')
+              )}
+              icon={
+                <svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path d="M16 16v2a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M7 9h6M7 13h4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M20 7v6m0 0l2-2m-2 2l-2-2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              }
+              title="Exportar movimientos filtrados a PDF"
+            >
+              Exportar PDF
+            </ExportButton>
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              setFiltroProducto("");
+              setFiltroMotivo("");
+              setFiltroCategoria("todas");
+              setFiltroMarca("todas");
+              setFiltroTipo("todos");
+              setFiltroFecha("");
+            }}
+            className="ml-2 text-gray-500 hover:text-gray-700"
+          >
+            <X size={16} className="mr-1" /> Limpiar
+          </Button>
         </div>
         {/* Filtros avanzados */}
         <div className="mb-4">
-          <div className="flex flex-wrap items-center gap-2 mb-2">
-            <Filter className="text-blue-500" size={20} />
-            <h3 className="font-semibold text-gray-700">Filtros</h3>
-            <span className="ml-2 text-xs text-gray-500">{movimientosFiltrados.length} resultado(s)</span>
-            <label className="ml-4 text-xs text-gray-500">Mostrar</label>
-            <select
-              className="rounded-md border border-blue-200 focus:border-blue-400 focus:ring-blue-300 bg-white h-8 text-sm px-2"
-              value={movimientosPorPagina}
-              onChange={e => {
-                setMovimientosPorPagina(Number(e.target.value));
-                setPaginaActual(1);
-              }}
-            >
-              {opcionesPorPagina.map(op => (
-                <option key={op} value={op}>{op}</option>
-              ))}
-            </select>
-            <span className="text-xs text-gray-500">por página</span>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => {
-                setFiltroProducto("");
-                setFiltroMotivo("");
-                setFiltroCategoria("todas");
-                setFiltroMarca("todas");
-                setFiltroTipo("todos");
-                setFiltroFecha("");
-              }}
-              className="ml-auto text-gray-500 hover:text-gray-700"
-            >
-              <X size={16} className="mr-1" /> Limpiar
-            </Button>
-          </div>
           {/* Fila principal de filtros alineados */}
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-2 w-full mb-4">
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-2 md:gap-2 w-full mb-4">
             {/* Buscar producto */}
-            <div className="flex flex-col relative">
-              <label className="text-sm text-gray-700 mb-1 font-medium">Producto</label>
+            <div className="flex flex-col relative w-full">
+              <label htmlFor="filtroProducto" className="text-sm text-gray-700 mb-1 font-medium">Producto</label>
               <span className="absolute left-3 top-[70%] -translate-y-1/2 text-blue-400 pointer-events-none">
                 <Search size={20} />
               </span>
-              <Input
+              <input
+                id="filtroProducto"
+                list="productos-list"
                 placeholder="Buscar producto"
                 value={filtroProducto}
-                onChange={(e) => setFiltroProducto(e.target.value)}
-                className="pl-10 rounded-md border border-blue-200 focus:border-blue-400 focus:ring-blue-300 bg-white h-11 text-base w-full"
+                onChange={e => setFiltroProducto(e.target.value)}
+                className="pl-10 rounded-md border border-blue-200 focus:border-blue-500 focus:ring-blue-300 bg-white h-11 text-base w-full"
               />
+              <datalist id="productos-list">
+                {productosUnicos.map((nombre, i) => <option key={i} value={nombre} />)}
+              </datalist>
             </div>
             {/* Buscar motivo */}
-            <div className="flex flex-col relative">
-              <label className="text-sm text-gray-700 mb-1 font-medium">Motivo</label>
-              <Input
+            <div className="flex flex-col relative w-full">
+              <label htmlFor="filtroMotivo" className="text-sm text-gray-700 mb-1 font-medium">Motivo</label>
+              <input
+                id="filtroMotivo"
+                list="motivos-list"
                 placeholder="Buscar motivo"
                 value={filtroMotivo}
-                onChange={(e) => setFiltroMotivo(e.target.value)}
-                className="rounded-md border border-blue-200 focus:border-blue-400 focus:ring-blue-300 bg-white h-11 text-base w-full"
+                onChange={e => setFiltroMotivo(e.target.value)}
+                className="rounded-md border border-blue-200 focus:border-blue-500 focus:ring-blue-300 bg-white h-11 text-base w-full"
               />
+              <datalist id="motivos-list">
+                {motivosUnicos.map((motivo, i) => <option key={i} value={motivo} />)}
+              </datalist>
             </div>
             {/* Filtro por categoría */}
-            <div className="flex flex-col">
-              <label className="text-sm text-gray-700 mb-1 font-medium">Categoría</label>
+            <div className="flex flex-col w-full">
+              <label htmlFor="filtroCategoria" className="text-sm text-gray-700 mb-1 font-medium">Categoría</label>
               <Select value={filtroCategoria} onValueChange={setFiltroCategoria}>
-                <SelectTrigger className="rounded-md border border-blue-200 focus:border-blue-400 focus:ring-blue-300 bg-white h-11 text-base">
+                <SelectTrigger id="filtroCategoria" className="rounded-md border border-blue-200 focus:border-blue-500 focus:ring-blue-300 bg-white h-11 text-base w-full">
                   <SelectValue placeholder="Filtrar por categoría" />
                 </SelectTrigger>
                 <SelectContent>
@@ -475,10 +594,10 @@ const movimiento = {
               </Select>
             </div>
             {/* Filtro por marca/proveedor */}
-            <div className="flex flex-col">
-              <label className="text-sm text-gray-700 mb-1 font-medium">Marca/Proveedor</label>
+            <div className="flex flex-col w-full">
+              <label htmlFor="filtroMarca" className="text-sm text-gray-700 mb-1 font-medium">Marca/Proveedor</label>
               <Select value={filtroMarca} onValueChange={setFiltroMarca}>
-                <SelectTrigger className="rounded-md border border-blue-200 focus:border-blue-400 focus:ring-blue-300 bg-white h-11 text-base">
+                <SelectTrigger id="filtroMarca" className="rounded-md border border-blue-200 focus:border-blue-500 focus:ring-blue-300 bg-white h-11 text-base w-full">
                   <SelectValue placeholder="Filtrar por marca" />
                 </SelectTrigger>
                 <SelectContent>
@@ -490,10 +609,10 @@ const movimiento = {
               </Select>
             </div>
             {/* Filtro por tipo (entrada/salida) */}
-            <div className="flex flex-col">
-              <label className="text-sm text-gray-700 mb-1 font-medium">Tipo</label>
+            <div className="flex flex-col w-full">
+              <label htmlFor="filtroTipo" className="text-sm text-gray-700 mb-1 font-medium">Tipo</label>
               <Select value={filtroTipo} onValueChange={setFiltroTipo}>
-                <SelectTrigger className="rounded-md border border-blue-200 focus:border-blue-400 focus:ring-blue-300 bg-white h-11 text-base">
+                <SelectTrigger id="filtroTipo" className="rounded-md border border-blue-200 focus:border-blue-500 focus:ring-blue-300 bg-white h-11 text-base w-full">
                   <SelectValue placeholder="Filtrar por tipo" />
                 </SelectTrigger>
                 <SelectContent>
@@ -507,13 +626,15 @@ const movimiento = {
           {/* Fila de filtro de fecha debajo */}
           <div className="w-full flex flex-col md:flex-row gap-2 mb-4">
             <div className="flex flex-col w-full md:w-1/3">
-              <label className="text-sm text-gray-700 mb-1 font-medium">Fecha</label>
+              <label htmlFor="filtroFecha" className="text-sm text-gray-700 mb-1 font-medium">Fecha</label>
               <div className="relative w-full">
                 <Input
+                  id="filtroFecha"
                   type="date"
+                  placeholder="dd/mm/yyyy"
                   value={filtroFecha}
                   onChange={(e) => setFiltroFecha(e.target.value)}
-                  className="pr-10 rounded-md border border-blue-200 focus:border-blue-400 focus:ring-blue-300 bg-white h-11 text-base w-full"
+                  className="pr-10 rounded-md border border-blue-200 focus:border-blue-500 focus:ring-blue-300 bg-white h-11 text-base w-full"
                 />
                 <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
                   <svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path d="M3 8h18M8 3v2m8-2v2m-9 4v9a2 2 0 002 2h6a2 2 0 002-2V9" stroke="#64748b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
@@ -521,74 +642,23 @@ const movimiento = {
               </div>
             </div>
           </div>
+          {/* Mensaje destacado si no hay resultados */}
+          {movimientosFiltrados.length === 0 && (
+            <div className="flex flex-col items-center justify-center min-h-[120px] text-blue-500 bg-white rounded-xl shadow p-6 mt-4">
+              <svg className="animate-bounce mb-2" width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z" fill="#3b82f6" />
+              </svg>
+              <span className="text-blue-600 text-lg font-semibold text-center">
+                No hay movimientos que coincidan con los filtros seleccionados
+              </span>
+              <span className="text-xs text-gray-500 mt-1">Ajusta los filtros para ver resultados</span>
+            </div>
+          )}
         </div>
         {/* Vista de movimientos */}
-        {vista === 'tabla' ? (
-          <div className="w-full">
-            <div className="hidden sm:block overflow-x-auto rounded-xl shadow bg-white mt-6">
-              <table className="min-w-full text-sm text-left text-gray-700 bg-white border-separate border-spacing-0">
-                <thead className="bg-gray-200 text-xs uppercase text-gray-500">
-                  <tr>
-                    <th className="px-4 py-4 border-b border-gray-300">Fecha</th>
-                    <th className="px-4 py-4 border-b border-gray-300">Tipo</th>
-                    <th className="px-4 py-4 border-b border-gray-300">Producto</th>
-                    <th className="px-4 py-4 border-b border-gray-300">Cantidad</th>
-                    <th className="px-4 py-4 border-b border-gray-300">Motivo</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {movimientosPaginados.length === 0 ? (
-                    <tr>
-                      <td colSpan={5} className="text-center py-8 text-blue-500">
-                        <Package size={32} className="mx-auto mb-2" />
-                        <div>No hay movimientos para mostrar</div>
-                        <div className="text-sm text-gray-500 mt-1">
-                          {movimientos.length > 0 ? "Intenta ajustar los filtros" : "Registra tu primer movimiento"}
-                        </div>
-                      </td>
-                    </tr>
-                  ) : (
-                    movimientosPaginados.map((mov) => (
-                      <tr key={mov.id} className="border-t border-gray-200 hover:bg-blue-50/40 transition">
-                        <td className="px-4 py-4 border-b border-gray-100">{formatearFechaCorta(mov.fecha)}</td>
-                        <td className="px-4 py-4 border-b border-gray-100 font-semibold">
-                          <span className={`px-2 py-0.5 rounded-full text-xs font-semibold flex items-center gap-1 ${mov.tipo === "entrada" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-600"}`}>
-                            {mov.tipo === "entrada" ? <BadgeCheck size={14}/> : <AlertTriangle size={14}/>} {mov.tipo.charAt(0).toUpperCase() + mov.tipo.slice(1)}
-                          </span>
-                        </td>
-                        <td className="px-4 py-4 border-b border-gray-100">
-                          <TooltipProvider delayDuration={300}>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <span className="truncate max-w-[140px] block cursor-pointer">{productos.find((p) => p.id === mov.productoId)?.nombre || "Desconocido"}</span>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                {productos.find((p) => p.id === mov.productoId)?.nombre || "Desconocido"}
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                        </td>
-                        <td className="px-4 py-4 border-b border-gray-100">{mov.cantidad}</td>
-                        <td className="px-4 py-4 border-b border-gray-100">
-                          <TooltipProvider delayDuration={300}>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <span className="truncate max-w-[140px] block cursor-pointer">{mov.motivo}</span>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                {mov.motivo}
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-            {/* Tarjetas en móvil */}
-            <div className="sm:hidden space-y-3">
+        {(isMobile || vista === 'tarjetas') ? (
+          <>
+            <div className="w-full grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mt-6 mb-4">
               {movimientosPaginados.length === 0 ? (
                 <div className="flex flex-col items-center justify-center min-h-[120px] text-blue-500 bg-white rounded-xl shadow p-6">
                   <Package size={36} className="mb-2" />
@@ -606,19 +676,17 @@ const movimiento = {
                         {mov.tipo === "entrada" ? <BadgeCheck size={14}/> : <AlertTriangle size={14}/>} {mov.tipo.charAt(0).toUpperCase() + mov.tipo.slice(1)}
                       </span>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-gray-400 font-medium">Producto:</span>
-                      <TooltipProvider delayDuration={300}>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <span className="truncate max-w-[120px] block cursor-pointer font-medium text-gray-800">{productos.find((p) => p.id === mov.productoId)?.nombre || "Desconocido"}</span>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            {productos.find((p) => p.id === mov.productoId)?.nombre || "Desconocido"}
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                    </div>
+                    <span className="text-xs text-gray-400 font-medium">Producto:</span>
+                    <TooltipProvider delayDuration={300}>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="truncate max-w-[120px] block cursor-pointer font-medium text-gray-800">{productos.find((p) => p.id === mov.productoId)?.nombre || "Desconocido"}</span>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          {productos.find((p) => p.id === mov.productoId)?.nombre || "Desconocido"}
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                     <div className="flex items-center gap-2">
                       <span className="text-xs text-gray-400 font-medium">Cantidad:</span>
                       <span className="text-xs text-gray-700">{mov.cantidad}</span>
@@ -631,96 +699,124 @@ const movimiento = {
                 ))
               )}
             </div>
-            {/* Controles de paginación debajo de la lista */}
-            <div className="flex justify-center items-center gap-2 mt-8">
+            {/* Números de página scrollable */}
+            <div className="flex justify-center items-center gap-2 mt-8 overflow-x-auto flex-nowrap pb-2">
+              {(() => {
+                const paginas = [];
+                if (totalPaginas <= 7) {
+                  for (let i = 1; i <= totalPaginas; i++) {
+                    paginas.push(i);
+                  }
+                } else {
+                  paginas.push(1);
+                  if (paginaActual > 4) paginas.push('...');
+                  for (let i = Math.max(2, paginaActual - 2); i <= Math.min(totalPaginas - 1, paginaActual + 2); i++) {
+                    if (i === 1 || i === totalPaginas) continue;
+                    paginas.push(i);
+                  }
+                  if (paginaActual < totalPaginas - 3) paginas.push('...');
+                  paginas.push(totalPaginas);
+                }
+                return paginas.map((num, idx) =>
+                  num === '...'
+                    ? <span key={`ellipsis-${idx}`} className="px-2 text-gray-400">...</span>
+                    : <Button
+                        key={num}
+                        variant={paginaActual === num ? 'default' : 'outline'}
+                        size="xs"
+                        onClick={() => setPaginaActual(num as number)}
+                        className={paginaActual === num ? 'bg-blue-600 text-white min-w-[40px]' : 'min-w-[40px]'}
+                      >{num}</Button>
+                );
+              })()}
+            </div>
+            {/* Botones Anterior/Siguiente debajo y centrados */}
+            <div className="flex justify-center items-center gap-4 mt-2">
               <Button
                 variant="outline"
                 size="sm"
                 disabled={paginaActual === 1}
                 onClick={() => setPaginaActual(paginaActual - 1)}
+                className="min-w-[80px]"
               >Anterior</Button>
-              {Array.from({ length: totalPaginas }, (_, i) => i + 1).map(num => (
-                <Button
-                  key={num}
-                  variant={paginaActual === num ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setPaginaActual(num)}
-                  className={paginaActual === num ? 'bg-blue-600 text-white' : ''}
-                >{num}</Button>
-              ))}
               <Button
                 variant="outline"
                 size="sm"
                 disabled={paginaActual === totalPaginas}
                 onClick={() => setPaginaActual(paginaActual + 1)}
+                className="min-w-[80px]"
               >Siguiente</Button>
             </div>
-          </div>
+          </>
         ) : (
-          // Vista tarjetas
-          <TooltipProvider delayDuration={300}>
+          <>
             <div className="w-full">
-              <AnimatePresence>
-                {movimientosPaginados.length === 0 ? (
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    className="flex flex-col items-center justify-center min-h-[200px] text-blue-500"
-                  >
-                    <Package size={48} className="mb-2" />
-                    <span className="text-lg font-semibold">No hay movimientos para mostrar</span>
-                    <span className="text-sm text-gray-500 mt-1">
-                      {movimientos.length > 0 ? "Intenta ajustar los filtros" : "Registra tu primer movimiento"}
-                    </span>
-                  </motion.div>
-                ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-                    {movimientosPaginados.map((mov) => (
-                      <motion.div
-                        key={mov.id}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: 20 }}
-                        className="relative bg-white rounded-2xl shadow-lg p-6 flex flex-col h-full border border-blue-50 hover:shadow-xl transition group"
-                      >
-                        {/* Badge tipo */}
-                        <span className={`absolute top-2 right-2 sm:top-3 sm:right-3 z-20 px-2 sm:px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1 ${mov.tipo === "entrada" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-600"}`}>
-                          {mov.tipo === "entrada" ? <BadgeCheck size={14}/> : <AlertTriangle size={14}/>} {mov.tipo.charAt(0).toUpperCase() + mov.tipo.slice(1)}
-                        </span>
-                        {/* Producto */}
-                        <div className="flex items-center gap-4 mb-2">
-                          <img
-                            src={productos.find((p) => p.id === mov.productoId)?.imagen || ''}
-                            alt={productos.find((p) => p.id === mov.productoId)?.nombre || 'Producto'}
-                            className="w-14 h-14 object-cover rounded border bg-gray-100"
-                          />
-                          <div>
+              <div className="hidden sm:block overflow-x-auto rounded-xl shadow bg-white mt-6">
+                <table className="min-w-full text-sm text-left text-gray-700 bg-white border-separate border-spacing-0">
+                  <thead className="bg-gray-200 text-xs uppercase text-gray-500">
+                    <tr>
+                      <th className="px-4 py-4 border-b border-gray-300">Fecha</th>
+                      <th className="px-4 py-4 border-b border-gray-300">Tipo</th>
+                      <th className="px-4 py-4 border-b border-gray-300">Producto</th>
+                      <th className="px-4 py-4 border-b border-gray-300">Cantidad</th>
+                      <th className="px-4 py-4 border-b border-gray-300">Motivo</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {movimientosPaginados.length === 0 ? (
+                      <tr>
+                        <td colSpan={5} className="text-center py-8 text-blue-500">
+                          <Package size={32} className="mx-auto mb-2" />
+                          <div>No hay movimientos para mostrar</div>
+                          <div className="text-sm text-gray-500 mt-1">
+                            {movimientos.length > 0 ? "Intenta ajustar los filtros" : "Registra tu primer movimiento"}
+                          </div>
+                        </td>
+                      </tr>
+                    ) : (
+                      movimientosPaginados.map((mov) => (
+                        <tr key={mov.id} className="border-t hover:bg-blue-50/40 transition">
+                          <td className="px-4 py-4 border-b border-gray-100">{formatearFechaCorta(mov.fecha)}</td>
+                          <td className="px-4 py-4 border-b border-gray-100">
+                            <span className={`px-2 py-0.5 rounded-full text-xs font-semibold flex items-center gap-1 ${mov.tipo === "entrada" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-600"}`}>
+                              {mov.tipo === "entrada" ? <BadgeCheck size={14}/> : <AlertTriangle size={14}/>} {mov.tipo.charAt(0).toUpperCase() + mov.tipo.slice(1)}
+                            </span>
+                          </td>
+                          <td className="px-4 py-4 border-b border-gray-100">
                             <TooltipProvider delayDuration={300}>
                               <Tooltip>
                                 <TooltipTrigger asChild>
-                                  <span className="font-medium text-base truncate max-w-[90vw] sm:max-w-[120px] block cursor-pointer">{productos.find((p) => p.id === mov.productoId)?.nombre || "Desconocido"}</span>
+                                  <span className="truncate max-w-[140px] block cursor-pointer">{productos.find((p) => p.id === mov.productoId)?.nombre || "Desconocido"}</span>
                                 </TooltipTrigger>
                                 <TooltipContent>
                                   {productos.find((p) => p.id === mov.productoId)?.nombre || "Desconocido"}
                                 </TooltipContent>
                               </Tooltip>
                             </TooltipProvider>
-                            <span className="text-xs text-gray-500">{formatearFecha(mov.fecha)}</span>
-                          </div>
-                        </div>
-                        {/* Cantidad y motivo */}
-                        <div className="flex flex-col gap-1 mt-2">
-                          <span className="text-sm font-semibold">Cantidad: <span className="text-blue-700">{mov.cantidad}</span></span>
-                          <span className="text-xs text-gray-600">Motivo: {mov.motivo}</span>
-                        </div>
-                      </motion.div>
-                    ))}
-                  </div>
-                )}
-              </AnimatePresence>
+                          </td>
+                          <td className="px-4 py-4 border-b border-gray-100">{mov.cantidad}</td>
+                          <td className="px-4 py-4 border-b border-gray-100">
+                            <TooltipProvider delayDuration={300}>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <span className="truncate max-w-[140px] block cursor-pointer">{mov.motivo}</span>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  {mov.motivo}
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
-          </TooltipProvider>
+            {/* Paginación en desktop */}
+            {renderPaginacion({ paginaActual, totalPaginas, setPaginaActual })}
+          </>
         )}
         {/* Modal */}
         <Dialog open={modalAbierto} onOpenChange={setModalAbierto}>
@@ -1084,22 +1180,6 @@ const movimiento = {
             <Plus size={32} />
           </Button>
         </div>
-
-        {/* En la interfaz, agregar los botones de exportación cerca de los filtros o la tabla: */}
-        <ExportButton
-          onClick={() => exportarMovimientosAExcel(movimientosFiltrados, nombreArchivoExportacion('Filtrados', 'xlsx'))}
-          icon={<svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path d="M16 16v2a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M7 9h6M7 13h4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M20 7v6m0 0l2-2m-2 2l-2-2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
-          title="Exportar movimientos filtrados a Excel"
-        >
-          Exportar Excel
-        </ExportButton>
-        <ExportButton
-          onClick={() => exportarMovimientosAPDF(movimientosFiltrados, nombreArchivoExportacion('Filtrados', 'pdf'))}
-          icon={<svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path d="M16 16v2a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M7 9h6M7 13h4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M20 7v6m0 0l2-2m-2 2l-2-2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
-          title="Exportar movimientos filtrados a PDF"
-        >
-          Exportar PDF
-        </ExportButton>
       </div>
     </div>
   );

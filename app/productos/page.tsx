@@ -337,6 +337,51 @@ function exportarProductosAPDF(productosExportar: Producto[], nombreArchivo: str
   doc.save(nombreArchivo);
 }
 
+function renderPaginacion({ paginaActual, totalPaginas, setPaginaActual }: { paginaActual: number, totalPaginas: number, setPaginaActual: (n: number) => void }) {
+  const paginas = [];
+  if (totalPaginas <= 7) {
+    for (let i = 1; i <= totalPaginas; i++) {
+      paginas.push(i);
+    }
+  } else {
+    paginas.push(1);
+    if (paginaActual > 4) paginas.push('...');
+    for (let i = Math.max(2, paginaActual - 2); i <= Math.min(totalPaginas - 1, paginaActual + 2); i++) {
+      if (i === 1 || i === totalPaginas) continue;
+      paginas.push(i);
+    }
+    if (paginaActual < totalPaginas - 3) paginas.push('...');
+    paginas.push(totalPaginas);
+  }
+  return (
+    <div className="flex justify-center items-center gap-2 mt-8">
+      <Button
+        variant="outline"
+        size="sm"
+        disabled={paginaActual === 1}
+        onClick={() => setPaginaActual(paginaActual - 1)}
+      >Anterior</Button>
+      {paginas.map((num, idx) =>
+        num === '...'
+          ? <span key={idx} className="px-2 text-gray-400">...</span>
+          : <Button
+              key={num}
+              variant={paginaActual === num ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setPaginaActual(num as number)}
+              className={paginaActual === num ? 'bg-blue-600 text-white' : ''}
+            >{num}</Button>
+      )}
+      <Button
+        variant="outline"
+        size="sm"
+        disabled={paginaActual === totalPaginas}
+        onClick={() => setPaginaActual(paginaActual + 1)}
+      >Siguiente</Button>
+    </div>
+  );
+}
+
 export default function ProductosPage() {
   const router = useRouter();
   const { productos, cargando, error, agregarProducto, actualizarProducto, eliminarProducto } = useProductos();
@@ -1178,29 +1223,61 @@ export default function ProductosPage() {
       )}
 
       {/* Controles de paginación debajo de la lista */}
-      <div className="flex justify-center items-center gap-2 mt-8">
-        <Button
-          variant="outline"
-          size="sm"
-          disabled={paginaActual === 1}
-          onClick={() => setPaginaActual(paginaActual - 1)}
-        >Anterior</Button>
-        {Array.from({ length: totalPaginas }, (_, i) => i + 1).map(num => (
-          <Button
-            key={num}
-            variant={paginaActual === num ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setPaginaActual(num)}
-            className={paginaActual === num ? 'bg-blue-600 text-white' : ''}
-          >{num}</Button>
-        ))}
-        <Button
-          variant="outline"
-          size="sm"
-          disabled={paginaActual === totalPaginas}
-          onClick={() => setPaginaActual(paginaActual + 1)}
-        >Siguiente</Button>
-      </div>
+      {isMobile ? (
+        <>
+          {/* Números de página scrollable */}
+          <div className="flex justify-center items-center gap-2 mt-8 overflow-x-auto flex-nowrap pb-2">
+            {(() => {
+              const paginas = [];
+              if (totalPaginas <= 7) {
+                for (let i = 1; i <= totalPaginas; i++) {
+                  paginas.push(i);
+                }
+              } else {
+                paginas.push(1);
+                if (paginaActual > 4) paginas.push('...');
+                for (let i = Math.max(2, paginaActual - 2); i <= Math.min(totalPaginas - 1, paginaActual + 2); i++) {
+                  if (i === 1 || i === totalPaginas) continue;
+                  paginas.push(i);
+                }
+                if (paginaActual < totalPaginas - 3) paginas.push('...');
+                paginas.push(totalPaginas);
+              }
+              return paginas.map((num, idx) =>
+                num === '...'
+                  ? <span key={`ellipsis-${idx}`} className="px-2 text-gray-400">...</span>
+                  : <Button
+                      key={num}
+                      variant={paginaActual === num ? 'default' : 'outline'}
+                      size="xs"
+                      onClick={() => setPaginaActual(num as number)}
+                      className={paginaActual === num ? 'bg-blue-600 text-white min-w-[40px]' : 'min-w-[40px]'}
+                    >{num}</Button>
+              );
+            })()}
+          </div>
+          {/* Botones Anterior/Siguiente debajo y centrados */}
+          <div className="flex justify-center items-center gap-4 mt-2">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={paginaActual === 1}
+              onClick={() => setPaginaActual(paginaActual - 1)}
+              className="min-w-[80px]"
+            >Anterior</Button>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={paginaActual === totalPaginas}
+              onClick={() => setPaginaActual(paginaActual + 1)}
+              className="min-w-[80px]"
+            >Siguiente</Button>
+          </div>
+        </>
+      ) : (
+        // Desktop: todo en una sola fila
+        renderPaginacion({ paginaActual, totalPaginas, setPaginaActual })
+      )}
 
       {/* Modal de producto */}
       <Dialog open={modalAbierto} onOpenChange={setModalAbierto}>

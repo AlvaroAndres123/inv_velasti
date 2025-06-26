@@ -22,6 +22,7 @@ import ExcelJS from "exceljs";
 import { MultiSelect } from "@/components/ui/MultiSelect";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { ExportButton } from "@/components/ui/ExportButton";
+import { useMediaQuery } from "@/hooks/useMediaQuery";
 
 interface Proveedor {
   id: number;
@@ -73,6 +74,8 @@ export default function ProveedoresPage() {
   const [eliminando, setEliminando] = useState(false);
 
   const [cargando, setCargando] = useState(true);
+
+  const isMobile = useMediaQuery('(max-width: 768px)');
 
   useEffect(() => {
     const user = localStorage.getItem("usuario");
@@ -318,6 +321,51 @@ export default function ProveedoresPage() {
     setProveedorAEliminar(null);
   };
 
+  function renderPaginacion({ paginaActual, totalPaginas, setPaginaActual }: { paginaActual: number, totalPaginas: number, setPaginaActual: (n: number) => void }) {
+    const paginas = [];
+    if (totalPaginas <= 7) {
+      for (let i = 1; i <= totalPaginas; i++) {
+        paginas.push(i);
+      }
+    } else {
+      paginas.push(1);
+      if (paginaActual > 4) paginas.push('...');
+      for (let i = Math.max(2, paginaActual - 2); i <= Math.min(totalPaginas - 1, paginaActual + 2); i++) {
+        if (i === 1 || i === totalPaginas) continue;
+        paginas.push(i);
+      }
+      if (paginaActual < totalPaginas - 3) paginas.push('...');
+      paginas.push(totalPaginas);
+    }
+    return (
+      <div className="flex justify-center items-center gap-2 mt-8">
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={paginaActual === 1}
+          onClick={() => setPaginaActual(paginaActual - 1)}
+        >Anterior</Button>
+        {paginas.map((num, idx) =>
+          num === '...'
+            ? <span key={idx} className="px-2 text-gray-400">...</span>
+            : <Button
+                key={num}
+                variant={paginaActual === num ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setPaginaActual(num as number)}
+                className={paginaActual === num ? 'bg-blue-600 text-white' : ''}
+              >{num}</Button>
+        )}
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={paginaActual === totalPaginas}
+          onClick={() => setPaginaActual(paginaActual + 1)}
+        >Siguiente</Button>
+      </div>
+    );
+  }
+
   if (cargando) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -502,30 +550,62 @@ export default function ProveedoresPage() {
             </tbody>
           </table>
         </div>
-        {/* Paginador debajo de la tabla */}
-        <div className="flex justify-center items-center gap-2 mt-8">
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={paginaActual === 1}
-            onClick={() => setPaginaActual(paginaActual - 1)}
-          >Anterior</Button>
-          {Array.from({ length: totalPaginas }, (_, i) => i + 1).map(num => (
-            <Button
-              key={num}
-              variant={paginaActual === num ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setPaginaActual(num)}
-              className={paginaActual === num ? 'bg-blue-600 text-white' : ''}
-            >{num}</Button>
-          ))}
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={paginaActual === totalPaginas}
-            onClick={() => setPaginaActual(paginaActual + 1)}
-          >Siguiente</Button>
-        </div>
+        {/* Controles de paginación debajo de la lista */}
+        {isMobile ? (
+          <>
+            {/* Números de página scrollable */}
+            <div className="flex justify-center items-center gap-2 mt-8 overflow-x-auto flex-nowrap pb-2">
+              {(() => {
+                const paginas = [];
+                if (totalPaginas <= 7) {
+                  for (let i = 1; i <= totalPaginas; i++) {
+                    paginas.push(i);
+                  }
+                } else {
+                  paginas.push(1);
+                  if (paginaActual > 4) paginas.push('...');
+                  for (let i = Math.max(2, paginaActual - 2); i <= Math.min(totalPaginas - 1, paginaActual + 2); i++) {
+                    if (i === 1 || i === totalPaginas) continue;
+                    paginas.push(i);
+                  }
+                  if (paginaActual < totalPaginas - 3) paginas.push('...');
+                  paginas.push(totalPaginas);
+                }
+                return paginas.map((num, idx) =>
+                  num === '...'
+                    ? <span key={`ellipsis-${idx}`} className="px-2 text-gray-400">...</span>
+                    : <Button
+                        key={num}
+                        variant={paginaActual === num ? 'default' : 'outline'}
+                        size="xs"
+                        onClick={() => setPaginaActual(num as number)}
+                        className={paginaActual === num ? 'bg-blue-600 text-white min-w-[40px]' : 'min-w-[40px]'}
+                      >{num}</Button>
+                );
+              })()}
+            </div>
+            {/* Botones Anterior/Siguiente debajo y centrados */}
+            <div className="flex justify-center items-center gap-4 mt-2">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={paginaActual === 1}
+                onClick={() => setPaginaActual(paginaActual - 1)}
+                className="min-w-[80px]"
+              >Anterior</Button>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={paginaActual === totalPaginas}
+                onClick={() => setPaginaActual(paginaActual + 1)}
+                className="min-w-[80px]"
+              >Siguiente</Button>
+            </div>
+          </>
+        ) : (
+          // Desktop: todo en una sola fila
+          renderPaginacion({ paginaActual, totalPaginas, setPaginaActual })
+        )}
         {/* FAB flotante para agregar proveedor */}
         <div className="fixed bottom-6 right-6 z-50 w-14 h-14 flex items-end">
           <Button
