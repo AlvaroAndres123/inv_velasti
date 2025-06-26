@@ -5,36 +5,17 @@ const prisma = new PrismaClient();
 async function main() {
   console.log('🌱 Iniciando seed de la base de datos...');
 
-  // Crear usuarios
-  const usuarios = await Promise.all([
-    prisma.usuario.upsert({
-      where: { email: 'admin@velasti.com' },
-      update: {},
-      create: {
-        nombre: 'Administrador',
-        email: 'admin@velasti.com',
-        password: 'admin123',
-      },
-    }),
-    prisma.usuario.upsert({
-      where: { email: 'vendedor@velasti.com' },
-      update: {},
-      create: {
-        nombre: 'María Vendedora',
-        email: 'vendedor@velasti.com',
-        password: 'vendedor123',
-      },
-    }),
-    prisma.usuario.upsert({
-      where: { email: 'gerente@velasti.com' },
-      update: {},
-      create: {
-        nombre: 'Carlos Gerente',
-        email: 'gerente@velasti.com',
-        password: 'gerente123',
-      },
-    }),
-  ]);
+  // Eliminar todos los usuarios existentes
+  await prisma.usuario.deleteMany({});
+
+  // Crear solo el usuario admin
+  await prisma.usuario.create({
+    data: {
+      nombre: 'admin',
+      email: 'admin@velasti.com',
+      password: 'admin123%',
+    },
+  });
 
   // Crear categorías
   const categorias = await Promise.all([
@@ -818,12 +799,8 @@ async function main() {
   ]);
 
   console.log('✅ Seed completado exitosamente!');
-  console.log(`👥 ${usuarios.length} usuarios creados`);
-  console.log(`📦 ${categorias.length} categorías creadas`);
-  console.log(`🚚 ${proveedores.length} proveedores creados`);
-  console.log(`💄 ${todosLosProductos.length} productos creados`);
-  console.log(`📊 ${movimientosEntrada.length + movimientosSalida.length} movimientos creados`);
-  console.log('\n📋 Resumen por categoría:');
+  console.log(`👥 ${todosLosProductos.length} productos creados`);
+  console.log(`📋 Resumen por categoría:`);
   console.log(`   • Maquillaje: ${productosMaquillaje.length} productos`);
   console.log(`   • Skincare: ${productosSkincare.length} productos`);
   console.log(`   • Fragancias: ${productosFragancias.length} productos`);
@@ -832,10 +809,9 @@ async function main() {
   console.log(`   • Accesorios: ${productosAccesorios.length} productos`);
   console.log(`   • Hombres: ${productosHombres.length} productos`);
   console.log(`   • Natural: ${productosNatural.length} productos`);
+  console.log(`📊 ${movimientosEntrada.length + movimientosSalida.length} movimientos creados`);
   console.log('\n🔑 Credenciales de acceso:');
   console.log('   • admin@velasti.com / admin123');
-  console.log('   • vendedor@velasti.com / vendedor123');
-  console.log('   • gerente@velasti.com / gerente123');
 }
 
 main()

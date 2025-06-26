@@ -6,18 +6,18 @@ const prisma = new PrismaClient();
 // POST: login
 export async function POST(req: NextRequest) {
   try {
-    const { email, password } = await req.json();
+    const { nombre, password } = await req.json();
 
-    if (!email || !password) {
+    if (!nombre || !password) {
       return NextResponse.json(
-        { error: "Email y contraseña son requeridos" },
+        { error: "Usuario y contraseña son requeridos" },
         { status: 400 }
       );
     }
 
-    // Buscar usuario en la base de datos
+    // Buscar usuario en la base de datos por nombre
     const usuario = await prisma.usuario.findUnique({
-      where: { email },
+      where: { nombre },
     });
 
     if (!usuario) {
@@ -34,6 +34,15 @@ export async function POST(req: NextRequest) {
         { status: 401 }
       );
     }
+
+    // Registrar actividad de inicio de sesión
+    await prisma.actividad.create({
+      data: {
+        usuarioId: usuario.id,
+        accion: 'Inicio de sesión',
+        ip: req.headers.get('x-forwarded-for') || '',
+      },
+    });
 
     // Retornar datos del usuario (sin la contraseña)
     const { password: _, ...usuarioSinPassword } = usuario;

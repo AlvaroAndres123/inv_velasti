@@ -11,10 +11,11 @@ datasource db {
 
 model Usuario {
   id       Int      @id @default(autoincrement())
-  nombre   String
+  nombre   String   @unique
   email    String   @unique
   password String
   creadoEn DateTime @default(now())
+  actividades Actividad[]
 }
 
 
@@ -68,4 +69,14 @@ model Movimiento {
   fecha_anulacion   DateTime?
   editado           Boolean   @default(false)
   fecha_edicion     DateTime?
+}
+
+model Actividad {
+  id        Int      @id @default(autoincrement())
+  usuario   Usuario  @relation(fields: [usuarioId], references: [id])
+  usuarioId Int
+  accion    String
+  fecha     DateTime @default(now())
+  ip        String?
+  detalles  String?
 }
