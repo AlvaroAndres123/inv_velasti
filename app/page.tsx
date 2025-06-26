@@ -24,7 +24,7 @@ import {
   Label,
 } from "recharts";
 import { TrendingUp } from "lucide-react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Card,
   CardContent,
@@ -39,6 +39,7 @@ import {
   ChartTooltipContent,
 } from "@/components/ui/chart";
 import { formatearSoloFecha } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 
 const meses = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio"];
 const años = ["2023", "2024", "2025"];
@@ -77,6 +78,13 @@ export default function Home() {
   >([]);
   const [productos, setProductos] = useState<Producto[]>([]);
   const [movimientos, setMovimientos] = useState<Movimiento[]>([]);
+  const [filtro, setFiltro] = useState({
+    mes: mesSeleccionado,
+    año: añoSeleccionado,
+    fechaInicio: fechaInicio,
+    fechaFin: fechaFin,
+  });
+  const [filtroAplicado, setFiltroAplicado] = useState(false);
 
   useEffect(() => {
     const user = localStorage.getItem("usuario");
@@ -184,6 +192,42 @@ export default function Home() {
     .sort((a, b) => b.visitors - a.visitors)
     .slice(0, 3);
 
+  // Filtrar movimientos según el filtro aplicado
+  const movimientosFiltrados = movimientos.filter((mov) => {
+    const fecha = new Date(mov.fecha);
+    const mes = fecha.toLocaleString("es-ES", { month: "long" });
+    const año = fecha.getFullYear().toString();
+    let cumple = true;
+    if (filtroAplicado) {
+      // Si hay fechas, filtra por rango
+      if (filtro.fechaInicio && filtro.fechaFin) {
+        cumple = fecha >= new Date(filtro.fechaInicio) && fecha <= new Date(filtro.fechaFin);
+      } else if (filtro.fechaInicio) {
+        cumple = fecha >= new Date(filtro.fechaInicio);
+      } else if (filtro.fechaFin) {
+        cumple = fecha <= new Date(filtro.fechaFin);
+      } else if (filtro.mes && filtro.año) {
+        // Si no hay fechas, filtra por mes y año
+        cumple = mes.toLowerCase() === filtro.mes.toLowerCase() && año === filtro.año;
+      }
+    }
+    return cumple;
+  });
+
+  // Mensaje personalizado según el filtro
+  let mensajeSinDatos = "No hay datos para el filtro seleccionado";
+  if (filtroAplicado) {
+    if (filtro.fechaInicio && filtro.fechaFin) {
+      mensajeSinDatos = `No hay datos para el rango del ${formatearSoloFecha(filtro.fechaInicio)} al ${formatearSoloFecha(filtro.fechaFin)}`;
+    } else if (filtro.fechaInicio) {
+      mensajeSinDatos = `No hay datos desde el ${formatearSoloFecha(filtro.fechaInicio)}`;
+    } else if (filtro.fechaFin) {
+      mensajeSinDatos = `No hay datos hasta el ${formatearSoloFecha(filtro.fechaFin)}`;
+    } else if (filtro.mes && filtro.año) {
+      mensajeSinDatos = `No hay datos para ${filtro.mes.toLowerCase()} de ${filtro.año}`;
+    }
+  }
+
   return (
     <main className="p-4 sm:p-6 md:p-8 max-w-screen-xl mx-auto">
       <h2 className="text-2xl md:text-3xl font-bold mb-6 text-center md:text-left">
@@ -230,156 +274,201 @@ export default function Home() {
           onChange={(e) => setFechaFin(e.target.value)}
           className="border rounded px-3 py-2 text-sm md:text-base"
         />
+        <Button
+          onClick={() => {
+            setFiltro({
+              mes: mesSeleccionado,
+              año: añoSeleccionado,
+              fechaInicio,
+              fechaFin,
+            });
+            setFiltroAplicado(true);
+          }}
+          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+        >
+          Aplicar filtro
+        </Button>
       </motion.div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 mb-10">
-        <InfoCard
-          title="Total de productos"
-          value={totalProductos.toString()}
-          color="text-blue-600"
-        />
-        <InfoCard
-          title="Stock bajo"
-          value={productosStockBajo.length.toString()}
-          color="text-red-500"
-          onClick={() => setModalStockBajoAbierto(true)}
-        />
-
-        <InfoCard
-          title="Última entrada"
-          value={ultimaEntradaFormateada}
-          color="text-green-600"
-        />
-        <InfoCard
-          title="Ventas del día"
-          value={`C$ ${ventasHoy.toLocaleString()}`}
-          color="text-purple-600"
-        />
-        <InfoCard
-          title="Ingresos del mes"
-          value={`C$ ${ingresosMes.toLocaleString()}`}
-          color="text-emerald-600"
-        />
-
-        <InfoCard
-          title="Productos más vendidos"
-          value={productosMasVendidos.map((p) => p.name).join(", ")}
-          color="text-orange-500 text-sm"
-        />
-      </div>
-
-      <h3 className="text-lg md:text-xl font-semibold mb-4 text-center md:text-left">
-        Ventas por Mes
-      </h3>
-      <div className="bg-white p-4 rounded-xl shadow-md w-full h-[250px] sm:h-[300px] mb-10">
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={ventasMensuales}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="mes" />
-            <YAxis />
-            <Tooltip />
-            <Bar dataKey="ventas" fill="#3b82f6" />
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
-
-      <h3 className="text-lg md:text-xl font-semibold mb-4 text-center md:text-left">
-        Top 5 productos más vendidos
-      </h3>
-      <Card className="mb-10">
-        <CardHeader className="items-center pb-0">
-          <CardTitle>Distribución por producto</CardTitle>
-          <CardDescription>Últimos 6 meses</CardDescription>
-        </CardHeader>
-        <CardContent className="pb-0">
-          <ChartContainer
-            config={{}}
-            className="mx-auto aspect-square max-h-[350px] md:max-h-[300px]"
+      <AnimatePresence>
+        {filtroAplicado && movimientosFiltrados.length === 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 10 }}
+            className="flex flex-col items-center mb-8"
           >
-            <PieChart>
-              <ChartTooltip
-                cursor={false}
-                content={<ChartTooltipContent hideLabel />}
+            <svg
+              className="animate-bounce mb-2"
+              width="48"
+              height="48"
+              viewBox="0 0 24 24"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"
+                fill="#3b82f6"
               />
-              <Pie
-                data={productosMasVendidos}
-                dataKey="visitors"
-                nameKey="name"
-                cx="50%"
-                cy="50%"
-                outerRadius={110}
-                label={false}
-                labelLine={false}
-                fill="#8884d8"
-              >
-                {productosMasVendidos.map((entry, index) => (
-                  <Cell
-                    key={`cell-${index}`}
-                    fill={colores[index % colores.length]}
-                  />
-                ))}
-              </Pie>
-            </PieChart>
-          </ChartContainer>
-          <div className="grid grid-cols-2 gap-2 sm:hidden mt-4">
-            {productosMasVendidos.map((item, index) => (
-              <div
-                key={item.name}
-                className="flex items-center space-x-2 text-sm"
-              >
-                <div
-                  className="w-3 h-3 rounded-full"
-                  style={{ backgroundColor: colores[index % colores.length] }}
-                ></div>
-                <span>
-                  {item.name} ({item.visitors})
-                </span>
-              </div>
-            ))}
-          </div>
-          <div className="hidden sm:grid grid-cols-3 gap-2 mt-6">
-            {productosMasVendidos.map((item, index) => (
-              <div
-                key={item.name}
-                className="flex items-center space-x-2 text-sm"
-              >
-                <div
-                  className="w-3 h-3 rounded-full"
-                  style={{ backgroundColor: colores[index % colores.length] }}
-                ></div>
-                <span>
-                  {item.name} ({item.visitors})
-                </span>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-        <CardFooter className="flex-col gap-2 text-sm">
-          <div className="flex items-center gap-2 font-medium leading-none">
-            En aumento un 5.2% este mes <TrendingUp className="h-4 w-4" />
-          </div>
-          <div className="leading-none text-muted-foreground">
-            Mostrando productos más vendidos en los últimos 6 meses
-          </div>
-        </CardFooter>
-      </Card>
+            </svg>
+            <span className="text-blue-600 text-lg font-semibold">
+              {mensajeSinDatos}
+            </span>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-      <h3 className="text-lg md:text-xl font-semibold mb-4 text-center md:text-left">
-        Entradas vs Salidas por Mes
-      </h3>
-      <div className="bg-white p-4 rounded-xl shadow-md w-full h-[250px] sm:h-[300px] mb-10">
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={resumenMovimientos}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="mes" />
-            <YAxis />
-            <Tooltip />
-            <Legend />
-            <Bar dataKey="entradas" fill="#10b981" name="Entradas" />
-            <Bar dataKey="salidas" fill="#ef4444" name="Salidas" />
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
+      {/* Solo mostrar tarjetas y gráficos si hay datos filtrados */}
+      {(!filtroAplicado || movimientosFiltrados.length > 0) && (
+        <>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 mb-10">
+            <InfoCard
+              title="Total de productos"
+              value={totalProductos.toString()}
+              color="text-blue-600"
+            />
+            <InfoCard
+              title="Stock bajo"
+              value={productosStockBajo.length.toString()}
+              color="text-red-500"
+              onClick={() => setModalStockBajoAbierto(true)}
+            />
+            <InfoCard
+              title="Última entrada"
+              value={ultimaEntradaFormateada}
+              color="text-green-600"
+            />
+            <InfoCard
+              title="Ventas del día"
+              value={`C$ ${ventasHoy.toLocaleString()}`}
+              color="text-purple-600"
+            />
+            <InfoCard
+              title="Ingresos del mes"
+              value={`C$ ${ingresosMes.toLocaleString()}`}
+              color="text-emerald-600"
+            />
+            <InfoCard
+              title="Productos más vendidos"
+              value={productosMasVendidos.map((p) => p.name).join(", ")}
+              color="text-orange-500 text-sm"
+            />
+          </div>
+
+          <h3 className="text-lg md:text-xl font-semibold mb-4 text-center md:text-left">
+            Ventas por Mes
+          </h3>
+          <div className="bg-white p-4 rounded-xl shadow-md w-full h-[250px] sm:h-[300px] mb-10">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={ventasMensuales}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="mes" />
+                <YAxis />
+                <Tooltip />
+                <Bar dataKey="ventas" fill="#3b82f6" />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+
+          <h3 className="text-lg md:text-xl font-semibold mb-4 text-center md:text-left">
+            Top 5 productos más vendidos
+          </h3>
+          <Card className="mb-10">
+            <CardHeader className="items-center pb-0">
+              <CardTitle>Distribución por producto</CardTitle>
+              <CardDescription>Últimos 6 meses</CardDescription>
+            </CardHeader>
+            <CardContent className="pb-0">
+              <ChartContainer
+                config={{}}
+                className="mx-auto aspect-square max-h-[350px] md:max-h-[300px]"
+              >
+                <PieChart>
+                  <ChartTooltip
+                    cursor={false}
+                    content={<ChartTooltipContent hideLabel />}
+                  />
+                  <Pie
+                    data={productosMasVendidos}
+                    dataKey="visitors"
+                    nameKey="name"
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={110}
+                    label={false}
+                    labelLine={false}
+                    fill="#8884d8"
+                  >
+                    {productosMasVendidos.map((entry, index) => (
+                      <Cell
+                        key={`cell-${index}`}
+                        fill={colores[index % colores.length]}
+                      />
+                    ))}
+                  </Pie>
+                </PieChart>
+              </ChartContainer>
+              <div className="grid grid-cols-2 gap-2 sm:hidden mt-4">
+                {productosMasVendidos.map((item, index) => (
+                  <div
+                    key={item.name}
+                    className="flex items-center space-x-2 text-sm"
+                  >
+                    <div
+                      className="w-3 h-3 rounded-full"
+                      style={{ backgroundColor: colores[index % colores.length] }}
+                    ></div>
+                    <span>
+                      {item.name} ({item.visitors})
+                    </span>
+                  </div>
+                ))}
+              </div>
+              <div className="hidden sm:grid grid-cols-3 gap-2 mt-6">
+                {productosMasVendidos.map((item, index) => (
+                  <div
+                    key={item.name}
+                    className="flex items-center space-x-2 text-sm"
+                  >
+                    <div
+                      className="w-3 h-3 rounded-full"
+                      style={{ backgroundColor: colores[index % colores.length] }}
+                    ></div>
+                    <span>
+                      {item.name} ({item.visitors})
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+            <CardFooter className="flex-col gap-2 text-sm">
+              <div className="flex items-center gap-2 font-medium leading-none">
+                En aumento un 5.2% este mes <TrendingUp className="h-4 w-4" />
+              </div>
+              <div className="leading-none text-muted-foreground">
+                Mostrando productos más vendidos en los últimos 6 meses
+              </div>
+            </CardFooter>
+          </Card>
+
+          <h3 className="text-lg md:text-xl font-semibold mb-4 text-center md:text-left">
+            Entradas vs Salidas por Mes
+          </h3>
+          <div className="bg-white p-4 rounded-xl shadow-md w-full h-[250px] sm:h-[300px] mb-10">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={resumenMovimientos}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="mes" />
+                <YAxis />
+                <Tooltip />
+                <Legend />
+                <Bar dataKey="entradas" fill="#10b981" name="Entradas" />
+                <Bar dataKey="salidas" fill="#ef4444" name="Salidas" />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </>
+      )}
 
       <Dialog
         open={modalStockBajoAbierto}
