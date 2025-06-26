@@ -24,6 +24,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useToast, ToastContainer } from "@/components/ui/toast";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
+import { useMediaQuery } from "@/lib/utils";
+import { MultiSelect } from "@/components/ui/MultiSelect";
 
 interface Producto {
   id: number;
@@ -195,10 +197,16 @@ export default function ProductosPage() {
 
   // Estados de filtros
   const [busqueda, setBusqueda] = useState("");
-  const [categoriaFiltro, setCategoriaFiltro] = useState("todas");
+  const [proveedorFiltro, setProveedorFiltro] = useState<string[]>([]);
+  const [categoriaFiltro, setCategoriaFiltro] = useState<string[]>([]);
+  const [stockFiltro, setStockFiltro] = useState<'todos' | 'agotado' | 'bajo' | 'ok'>('todos');
+  const [nombreExacto, setNombreExacto] = useState(false);
+  const [orden, setOrden] = useState<'nombre' | 'precio' | 'stock'>('nombre');
+  const [asc, setAsc] = useState(true);
+  const isMobile = useMediaQuery('(max-width: 768px)');
+  const [filtrosAbiertos, setFiltrosAbiertos] = useState(!isMobile);
   const [precioMin, setPrecioMin] = useState("");
   const [precioMax, setPrecioMax] = useState("");
-  const [stockBajo, setStockBajo] = useState(false);
 
   // Estados de modales
   const [modalCategoria, setModalCategoria] = useState(false);
@@ -242,22 +250,42 @@ export default function ProductosPage() {
     setCategoriasLocales(categorias);
   }, [categorias]);
 
-  // Memoización de productos filtrados
+  // Memoización de productos filtrados y ordenados
   const productosFiltrados = useMemo(() => {
-    return productos.filter((prod) => {
-      const coincideBusqueda = busquedaDebounced === "" || 
-        prod.nombre.toLowerCase().includes(busquedaDebounced.toLowerCase()) ||
-        prod.categoria?.nombre.toLowerCase().includes(busquedaDebounced.toLowerCase()) ||
-        prod.proveedor?.nombre.toLowerCase().includes(busquedaDebounced.toLowerCase());
-
-      const coincideCategoria = categoriaFiltro === "todas" || categoriaFiltro === "" || prod.categoria?.nombre === categoriaFiltro;
-      const coincidePrecioMin = precioMin === "" || prod.precio >= parseFloat(precioMin);
-      const coincidePrecioMax = precioMax === "" || prod.precio <= parseFloat(precioMax);
-      const coincideStock = !stockBajo || prod.stock <= 10;
-
-      return coincideBusqueda && coincideCategoria && coincidePrecioMin && coincidePrecioMax && coincideStock;
+    let filtrados = productos.filter((prod) => {
+      // Filtro por nombre
+      if (busqueda) {
+        if (nombreExacto) {
+          if (prod.nombre.toLowerCase() !== busqueda.toLowerCase()) return false;
+        } else {
+          if (!prod.nombre.toLowerCase().includes(busqueda.toLowerCase())) return false;
+        }
+      }
+      // Filtro por categoría (multi)
+      if (categoriaFiltro.length && !categoriaFiltro.includes(String(prod.categoriaId))) return false;
+      // Filtro por proveedor (multi)
+      if (proveedorFiltro.length && !proveedorFiltro.includes(String(prod.proveedorId))) return false;
+      // Filtro por stock
+      if (stockFiltro === 'agotado' && prod.stock > 0) return false;
+      if (stockFiltro === 'bajo' && (prod.stock > 10 || prod.stock <= 0)) return false;
+      if (stockFiltro === 'ok' && prod.stock <= 10) return false;
+      // Filtro por precio
+      if (precioMin && prod.precio < parseFloat(precioMin)) return false;
+      if (precioMax && prod.precio > parseFloat(precioMax)) return false;
+      return true;
     });
-  }, [productos, busquedaDebounced, categoriaFiltro, precioMin, precioMax, stockBajo]);
+    // Orden
+    filtrados = filtrados.sort((a, b) => {
+      let valA = a[orden];
+      let valB = b[orden];
+      if (typeof valA === 'string') valA = valA.toLowerCase();
+      if (typeof valB === 'string') valB = valB.toLowerCase();
+      if (valA < valB) return asc ? -1 : 1;
+      if (valA > valB) return asc ? 1 : -1;
+      return 0;
+    });
+    return filtrados;
+  }, [productos, busqueda, nombreExacto, categoriaFiltro, proveedorFiltro, stockFiltro, precioMin, precioMax, orden, asc]);
 
   // Funciones de manejo
   const abrirModalAgregar = useCallback(() => {
@@ -380,10 +408,14 @@ export default function ProductosPage() {
 
   const limpiarFiltros = useCallback(() => {
     setBusqueda("");
-    setCategoriaFiltro("todas");
+    setProveedorFiltro([]);
+    setCategoriaFiltro([]);
+    setStockFiltro('todos');
+    setNombreExacto(false);
+    setOrden('nombre');
+    setAsc(true);
     setPrecioMin("");
     setPrecioMax("");
-    setStockBajo(false);
   }, []);
 
   // Spinner de carga
@@ -456,77 +488,117 @@ export default function ProductosPage() {
         </div>
       </div>
 
-      {/* Filtros */}
+      {/* Filtros avanzados */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-6">
         <div className="flex items-center gap-2 mb-4">
           <Filter className="text-blue-500" size={20} />
           <h3 className="font-semibold text-gray-700">Filtros</h3>
-          {(busqueda || categoriaFiltro !== "todas" || precioMin || precioMax || stockBajo) && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={limpiarFiltros}
-              className="ml-auto text-gray-500 hover:text-gray-700"
-            >
-              <X size={16} /> Limpiar
+          <span className="ml-2 text-xs text-gray-500">{productosFiltrados.length} resultado(s)</span>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={limpiarFiltros}
+            className="ml-auto text-gray-500 hover:text-gray-700"
+          >
+            <X size={16} /> Limpiar
+          </Button>
+          {isMobile && (
+            <Button variant="outline" size="sm" onClick={() => setFiltrosAbiertos((v) => !v)}>
+              {filtrosAbiertos ? 'Ocultar' : 'Mostrar'} filtros
             </Button>
           )}
         </div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
-            <Input
-              placeholder="Buscar productos..."
-              value={busqueda}
-              onChange={(e) => setBusqueda(e.target.value)}
-              className="pl-10 rounded-lg border-blue-200 focus:border-blue-400 focus:ring-blue-300"
-            />
+        {(!isMobile || filtrosAbiertos) && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* Filtro por nombre */}
+            <div>
+              <Input
+                placeholder="Buscar productos..."
+                value={busqueda}
+                onChange={(e) => setBusqueda(e.target.value)}
+                className="pl-10 rounded-lg border-blue-200 focus:border-blue-400 focus:ring-blue-300"
+              />
+              <div className="flex items-center gap-2 mt-1">
+                <input type="checkbox" id="nombreExacto" checked={nombreExacto} onChange={() => setNombreExacto(!nombreExacto)} />
+                <label htmlFor="nombreExacto" className="text-xs text-gray-500">Coincidencia exacta</label>
+              </div>
+            </div>
+            {/* Filtro por categoría (multi) */}
+            <div>
+              <MultiSelect
+                label="Categoría"
+                options={categoriasLocales.map(cat => ({ label: cat.nombre, value: String(cat.id) }))}
+                value={categoriaFiltro}
+                onChange={setCategoriaFiltro}
+                placeholder="Seleccionar categoría..."
+                className="mb-2"
+              />
+            </div>
+            {/* Filtro por proveedor (multi) */}
+            <div>
+              <MultiSelect
+                label="Proveedor"
+                options={proveedores.map(prov => ({ label: prov.nombre, value: String(prov.id) }))}
+                value={proveedorFiltro}
+                onChange={setProveedorFiltro}
+                placeholder="Seleccionar proveedor..."
+                className="mb-2"
+              />
+            </div>
+            {/* Filtro por stock */}
+            <div>
+              <label className="text-xs text-gray-500">Stock</label>
+              <div className="flex gap-2 flex-wrap mt-1">
+                <label className="flex items-center gap-1 text-xs">
+                  <input type="radio" name="stockFiltro" value="todos" checked={stockFiltro === 'todos'} onChange={() => setStockFiltro('todos')} /> Todos
+                </label>
+                <label className="flex items-center gap-1 text-xs">
+                  <input type="radio" name="stockFiltro" value="agotado" checked={stockFiltro === 'agotado'} onChange={() => setStockFiltro('agotado')} /> Agotados
+                </label>
+                <label className="flex items-center gap-1 text-xs">
+                  <input type="radio" name="stockFiltro" value="bajo" checked={stockFiltro === 'bajo'} onChange={() => setStockFiltro('bajo')} /> Bajo (&le;10)
+                </label>
+                <label className="flex items-center gap-1 text-xs">
+                  <input type="radio" name="stockFiltro" value="ok" checked={stockFiltro === 'ok'} onChange={() => setStockFiltro('ok')} /> OK (&gt;10)
+                </label>
+              </div>
+            </div>
+            {/* Filtro por precio */}
+            <div className="col-span-2 md:col-span-1">
+              <label className="text-xs text-gray-500">Precio</label>
+              <div className="flex gap-2 mt-1">
+                <Input
+                  type="number"
+                  placeholder="Mínimo"
+                  value={precioMin}
+                  onChange={(e) => setPrecioMin(e.target.value)}
+                  className="rounded-lg border-blue-200 focus:border-blue-400 focus:ring-blue-300"
+                />
+                <Input
+                  type="number"
+                  placeholder="Máximo"
+                  value={precioMax}
+                  onChange={(e) => setPrecioMax(e.target.value)}
+                  className="rounded-lg border-blue-200 focus:border-blue-400 focus:ring-blue-300"
+                />
+              </div>
+            </div>
+            {/* Filtro de orden */}
+            <div className="col-span-2 md:col-span-1">
+              <label className="text-xs text-gray-500">Ordenar por</label>
+              <div className="flex gap-2 mt-1">
+                <select className="rounded-lg border-blue-200 focus:border-blue-400 focus:ring-blue-300" value={orden} onChange={e => setOrden(e.target.value as any)}>
+                  <option value="nombre">Nombre</option>
+                  <option value="precio">Precio</option>
+                  <option value="stock">Stock</option>
+                </select>
+                <Button type="button" variant="outline" size="icon" onClick={() => setAsc(a => !a)} title={asc ? 'Ascendente' : 'Descendente'}>
+                  {asc ? <svg width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M7 14l5-5 5 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg> : <svg width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+                </Button>
+              </div>
+            </div>
           </div>
-          
-          <Select onValueChange={setCategoriaFiltro} value={categoriaFiltro}>
-            <SelectTrigger className="rounded-lg border-blue-200 focus:border-blue-400 focus:ring-blue-300">
-              <SelectValue placeholder="Todas las categorías" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todas">Todas las categorías</SelectItem>
-              {categoriasLocales.map((cat) => (
-                <SelectItem key={cat.id} value={cat.nombre}>
-                  {cat.nombre}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          
-          <Input
-            type="number"
-            placeholder="Precio mínimo"
-            value={precioMin}
-            onChange={(e) => setPrecioMin(e.target.value)}
-            className="rounded-lg border-blue-200 focus:border-blue-400 focus:ring-blue-300"
-          />
-          
-          <Input
-            type="number"
-            placeholder="Precio máximo"
-            value={precioMax}
-            onChange={(e) => setPrecioMax(e.target.value)}
-            className="rounded-lg border-blue-200 focus:border-blue-400 focus:ring-blue-300"
-          />
-        </div>
-
-        <div className="flex items-center mt-4 gap-2">
-          <input
-            type="checkbox"
-            id="stockBajo"
-            checked={stockBajo}
-            onChange={() => setStockBajo(!stockBajo)}
-            className="accent-blue-500"
-          />
-          <label htmlFor="stockBajo" className="text-sm text-gray-700">
-            Mostrar solo productos con stock bajo (≤ 10)
-          </label>
-        </div>
+        )}
       </div>
 
       {/* Grid de tarjetas o tabla según la vista elegida */}
