@@ -15,30 +15,27 @@ export default function ClientShell({ children }: { children: React.ReactNode })
   const esRutaPublica = rutasPublicas.includes(pathname) || pathname.startsWith('/roadmap');
   const ocultarSidebar = esRutaPublica;
 
-  // Validación de autenticación
+  // Validación inmediata y agresiva
   useEffect(() => {
-    const validarAutenticacion = () => {
-      const usuario = localStorage.getItem('usuario');
-      
-      if (!esRutaPublica && !usuario) {
-        // Si no es ruta pública y no hay usuario, redirigir al login
-        router.replace('/login');
-        return;
-      }
-      
-      if (esRutaPublica && usuario && pathname === '/login') {
-        // Si es login y ya hay usuario autenticado, redirigir al dashboard
-        router.replace('/');
-        return;
-      }
-      
-      setIsLoading(false);
-    };
-
-    validarAutenticacion();
+    const usuario = localStorage.getItem('usuario');
+    
+    // Si no es ruta pública y no hay usuario, redirigir inmediatamente
+    if (!esRutaPublica && !usuario) {
+      router.replace('/login');
+      return;
+    }
+    
+    // Si es login y ya hay usuario autenticado, redirigir al dashboard
+    if (esRutaPublica && usuario && pathname === '/login') {
+      router.replace('/');
+      return;
+    }
+    
+    // Solo mostrar contenido si pasa todas las validaciones
+    setIsLoading(false);
   }, [pathname, esRutaPublica, router]);
 
-  // Mostrar loading mientras valida
+  // Mostrar loading mientras valida - esto evita el parpadeo
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-100">
