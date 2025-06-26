@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Plus, Pencil, Trash2, Package, Search, Filter, Table } from "lucide-react";
+import { Plus, Pencil, Trash2, Truck, Search, Filter, Table, LayoutGrid } from "lucide-react";
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
@@ -76,6 +76,12 @@ export default function ProveedoresPage() {
   const [cargando, setCargando] = useState(true);
 
   const isMobile = useMediaQuery('(max-width: 768px)');
+  const [vista, setVista] = useState<'tabla' | 'tarjetas'>(() => {
+    if (typeof window !== 'undefined') {
+      return (localStorage.getItem('vistaProveedores') as 'tabla' | 'tarjetas') || (isMobile ? 'tarjetas' : 'tabla');
+    }
+    return isMobile ? 'tarjetas' : 'tabla';
+  });
 
   useEffect(() => {
     const user = localStorage.getItem("usuario");
@@ -100,6 +106,16 @@ export default function ProveedoresPage() {
       })
       .finally(() => setCargando(false));
   }, []);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('vistaProveedores', vista);
+    }
+  }, [vista]);
+
+  useEffect(() => {
+    if (isMobile) setVista('tarjetas');
+  }, [isMobile]);
 
   const abrirModalAgregar = () => {
     setProveedorActual(null);
@@ -384,11 +400,34 @@ export default function ProveedoresPage() {
     <div className="min-h-screen bg-[#f6f8fa] flex flex-col items-center justify-start py-4">
       <div className="w-full max-w-7xl px-4 sm:px-8 mx-auto">
         <ToastContainer toasts={toasts} onClose={removeToast} />
-        {/* Encabezado */}
-        <div className="flex items-center gap-2 mb-6">
-          <Package className="text-blue-500" size={32} />
-          <h2 className="text-3xl font-bold text-gray-800">Proveedores</h2>
-          <span className="text-sm font-normal text-gray-500 ml-2">({proveedoresFiltrados.length} de {proveedores.length})</span>
+        {/* Encabezado y switch de vista */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+          <div className="flex items-center gap-2">
+            <Truck className="text-blue-500" size={32} />
+            <h2 className="text-3xl font-bold text-gray-800">Proveedores</h2>
+            <span className="text-sm font-normal text-gray-500 ml-2">({proveedoresFiltrados.length} de {proveedores.length})</span>
+          </div>
+          <div className="flex gap-2 items-center">
+            <Button
+              variant={vista === 'tabla' ? 'default' : 'outline'}
+              size="icon"
+              aria-label="Vista tabla"
+              className={vista === 'tabla' ? 'bg-blue-600 text-white' : ''}
+              onClick={() => setVista('tabla')}
+              disabled={isMobile}
+            >
+              <Table size={20} />
+            </Button>
+            <Button
+              variant={vista === 'tarjetas' ? 'default' : 'outline'}
+              size="icon"
+              aria-label="Vista tarjetas"
+              className={vista === 'tarjetas' ? 'bg-blue-600 text-white' : ''}
+              onClick={() => setVista('tarjetas')}
+            >
+              <LayoutGrid size={20} />
+            </Button>
+          </div>
         </div>
         {/* Filtros avanzados */}
         <div className="mb-4">
@@ -455,16 +494,16 @@ export default function ProveedoresPage() {
             />
           </div>
         </div>
-        {/* Tabla moderna y responsive */}
-        {proveedoresPaginados.length === 0 ? (
+        {/* Renderizado condicional según vista */}
+        {proveedoresFiltrados.length === 0 ? (
           <div className="flex flex-col items-center justify-center min-h-[180px] w-full text-blue-500 bg-white rounded-xl shadow p-6 my-8">
-            <Package size={40} className="mb-2" />
+            <Truck size={40} className="mb-2" />
             <span className="text-lg font-semibold">No hay proveedores para mostrar</span>
             <span className="text-sm text-gray-500 mt-1">
               {proveedores.length > 0 ? "Intenta ajustar los filtros" : "Agrega tu primer proveedor"}
             </span>
           </div>
-        ) : (
+        ) : vista === 'tabla' ? (
           <div className="overflow-x-auto">
             <table className="min-w-full text-sm text-left text-gray-700 bg-white border-separate border-spacing-0">
               <thead className="bg-gray-200 text-xs uppercase text-gray-500">
@@ -547,6 +586,41 @@ export default function ProveedoresPage() {
               </tbody>
             </table>
           </div>
+        ) : (
+          // Vista tarjetas
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 my-8">
+            {proveedoresPaginados.map((prov) => (
+              <div key={prov.id} className="bg-white rounded-xl shadow p-6 flex flex-col gap-2 border border-gray-100">
+                <div className="flex items-center gap-2 mb-2">
+                  <Truck className="text-blue-400" size={28} />
+                  <span className="font-semibold text-lg text-blue-900 truncate">{prov.nombre}</span>
+                </div>
+                <div className="text-gray-700 text-sm"><b>Contacto:</b> {prov.contacto}</div>
+                <div className="text-gray-700 text-sm"><b>Teléfono:</b> {prov.telefono}</div>
+                <div className="text-gray-700 text-sm"><b>Correo:</b> {prov.correo}</div>
+                <div className="text-gray-700 text-sm"><b>Dirección:</b> {prov.direccion}</div>
+                <div className="flex gap-2 mt-2">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => abrirModalEditar(prov)}
+                    title="Editar proveedor"
+                  >
+                    <Pencil size={16} />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="text-red-500"
+                    onClick={() => pedirConfirmacionEliminar(prov)}
+                    title="Eliminar proveedor"
+                  >
+                    <Trash2 size={16} />
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
         )}
         {/* Controles de paginación debajo de la lista */}
         {isMobile ? (
@@ -622,7 +696,7 @@ export default function ProveedoresPage() {
           <DialogContent className="max-w-lg">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2 text-blue-700">
-                <Package size={22} /> {modoEdicion ? "Editar Proveedor" : "Agregar Proveedor"}
+                <Truck size={22} /> {modoEdicion ? "Editar Proveedor" : "Agregar Proveedor"}
               </DialogTitle>
             </DialogHeader>
             <form className="space-y-4" onSubmit={guardarProveedor}>
