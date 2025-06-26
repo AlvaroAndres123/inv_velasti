@@ -477,169 +477,186 @@ export default function ProveedoresPage() {
             </Button>
           </div>
         </div>
-        {/* Filtros avanzados con grid responsivo y lógica igual a movimientos */}
+        {/* Controles superiores y filtros */}
         <div className="mb-4">
-          <div className="flex flex-wrap items-center gap-2 mb-2">
-            <Filter className="text-blue-500" size={20} />
-            <h3 className="font-semibold text-gray-700">Filtros</h3>
-            <span className="ml-2 text-xs text-gray-500">{proveedoresFiltrados.length} resultado(s)</span>
-            <label className="ml-4 text-xs text-gray-500">Mostrar</label>
-            <select
-              className="rounded-md border border-blue-200 focus:border-blue-400 focus:ring-blue-300 bg-white h-8 text-sm px-2"
-              value={proveedoresPorPagina}
-              onChange={e => {
-                setProveedoresPorPagina(Number(e.target.value));
-                setPaginaActual(1);
-              }}
-            >
-              {opcionesPorPagina.map(op => (
-                <option key={op} value={op}>{op}</option>
-              ))}
-            </select>
-            <span className="text-xs text-gray-500">por página</span>
-            <ExportButton
-              onClick={() => exportarProveedoresAExcel(
-                seleccionados.length > 0 ? proveedores.filter(p => seleccionados.includes(p.id)) : proveedoresFiltrados,
-                nombreArchivoExportacion(seleccionados.length > 0 ? 'Seleccionados' : 'Filtrados', 'xlsx')
-              )}
-              icon={
-                <svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path d="M16 16v2a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M7 9h6M7 13h4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M20 7v6m0 0l2-2m-2 2l-2-2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-              }
-              title={seleccionados.length > 0 ? "Exportar seleccionados a Excel" : "Exportar proveedores filtrados a Excel"}
-            >
-              Exportar Excel
-            </ExportButton>
-            <ExportButton
-              onClick={() => exportarProveedoresAPDF(
-                seleccionados.length > 0 ? proveedores.filter(p => seleccionados.includes(p.id)) : proveedoresFiltrados,
-                nombreArchivoExportacion(seleccionados.length > 0 ? 'Seleccionados' : 'Filtrados', 'pdf')
-              )}
-              icon={
-                <svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path d="M16 16v2a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M7 9h6M7 13h4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M20 7v6m0 0l2-2m-2 2l-2-2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-              }
-              title={seleccionados.length > 0 ? "Exportar seleccionados a PDF" : "Exportar proveedores filtrados a PDF"}
-            >
-              Exportar PDF
-            </ExportButton>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => {
-                setFiltroNombre("");
-                setFiltroContacto("");
-                setFiltroCorreo("");
-                setFiltroTelefono("");
-                setFiltroCiudad("");
-                limpiarSeleccion();
-              }}
-              className="ml-2 text-gray-500 hover:text-gray-700"
-            >
-              <X size={16} className="mr-1" /> Limpiar
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setFiltrosAbiertos((v) => !v)}
-              className="md:hidden"
-            >
-              {filtrosAbiertos ? 'Ocultar' : 'Mostrar'} filtros
-            </Button>
+          {/* Controles superiores agrupados y responsivos */}
+          <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-2 mb-2 w-full">
+            {/* Izquierda: Filtros, resultados y paginación */}
+            <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-4 w-full md:w-auto">
+              <div className="flex items-center gap-2">
+                <Filter className="text-blue-500" size={20} />
+                <h3 className="font-semibold text-gray-700">Filtros</h3>
+                <span className="ml-2 text-xs text-gray-500">{proveedoresFiltrados.length} resultado(s)</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <label className="text-xs text-gray-500">Mostrar</label>
+                <select
+                  className="rounded-md border border-blue-200 focus:border-blue-400 focus:ring-blue-300 bg-white px-2 py-1 text-xs outline-none"
+                  value={proveedoresPorPagina}
+                  onChange={e => {
+                    setProveedoresPorPagina(Number(e.target.value));
+                    setPaginaActual(1);
+                  }}
+                >
+                  {[10, 20, 50, 100].map(num => (
+                    <option key={num} value={num}>{num}</option>
+                  ))}
+                </select>
+                <span className="text-xs text-gray-500">por página</span>
+              </div>
+            </div>
+            {/* Derecha: Botones de exportar y limpiar */}
+            <div className="flex flex-col gap-2 w-full md:w-auto md:flex-row md:gap-4 justify-start md:justify-end">
+              {/* Fila de exportar */}
+              <div className="flex flex-row gap-2 w-full md:w-auto">
+                <ExportButton
+                  onClick={() => exportarProveedoresAExcel(
+                    seleccionados.length > 0 ? proveedores.filter(p => seleccionados.includes(p.id)) : proveedoresFiltrados,
+                    nombreArchivoExportacion(seleccionados.length > 0 ? 'Seleccionados' : 'Filtrados', 'xlsx')
+                  )}
+                  icon={
+                    <svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path d="M16 16v2a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M7 9h6M7 13h4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M20 7v6m0 0l2-2m-2 2l-2-2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                  }
+                  title={seleccionados.length > 0 ? "Exportar seleccionados a Excel" : "Exportar proveedores filtrados a Excel"}
+                >
+                  Exportar Excel
+                </ExportButton>
+                <ExportButton
+                  onClick={() => exportarProveedoresAPDF(
+                    seleccionados.length > 0 ? proveedores.filter(p => seleccionados.includes(p.id)) : proveedoresFiltrados,
+                    nombreArchivoExportacion(seleccionados.length > 0 ? 'Seleccionados' : 'Filtrados', 'pdf')
+                  )}
+                  icon={
+                    <svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path d="M16 16v2a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M7 9h6M7 13h4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M20 7v6m0 0l2-2m-2 2l-2-2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                  }
+                  title={seleccionados.length > 0 ? "Exportar seleccionados a PDF" : "Exportar proveedores filtrados a PDF"}
+                >
+                  Exportar PDF
+                </ExportButton>
+              </div>
+              {/* Fila de limpiar y mostrar filtros */}
+              <div className="flex flex-row gap-2 w-full md:w-auto">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setFiltroNombre("");
+                    setFiltroContacto("");
+                    setFiltroCorreo("");
+                    setFiltroTelefono("");
+                    setFiltroCiudad("");
+                    limpiarSeleccion();
+                  }}
+                  className="text-gray-500 hover:text-gray-700"
+                >
+                  <X size={16} className="mr-1" /> Limpiar
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setFiltrosAbiertos((v) => !v)}
+                  className="md:hidden"
+                >
+                  {filtrosAbiertos ? 'Ocultar' : 'Mostrar'} filtros
+                </Button>
+              </div>
+            </div>
           </div>
-        </div>
-        {/* Filtros colapsables en móvil */}
-        <div className={`${isMobile && !filtrosAbiertos ? 'hidden' : ''}`}>
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-2 md:gap-2 w-full mb-4">
-            {/* Buscar por nombre */}
-            <div className="flex flex-col relative w-full">
-              <label htmlFor="filtroNombre" className="text-sm text-gray-700 mb-1 font-medium">Nombre</label>
-              <span className="absolute left-3 top-[70%] -translate-y-1/2 text-blue-400 pointer-events-none">
-                <Search size={20} />
-              </span>
-              <input
-                id="filtroNombre"
-                placeholder="Buscar nombre"
-                value={filtroNombre}
-                onChange={e => setFiltroNombre(e.target.value)}
-                className="pl-10 rounded-md border border-blue-200 focus:border-blue-500 focus:ring-blue-300 bg-white h-11 text-base w-full"
-                list="nombres-proveedores"
-              />
-              <datalist id="nombres-proveedores">
-                {nombresUnicos.map(nombre => (
-                  <option key={nombre} value={nombre} />
-                ))}
-              </datalist>
-            </div>
-            {/* Buscar por contacto */}
-            <div className="flex flex-col relative w-full">
-              <label htmlFor="filtroContacto" className="text-sm text-gray-700 mb-1 font-medium">Contacto</label>
-              <span className="absolute left-3 top-[70%] -translate-y-1/2 text-blue-400 pointer-events-none">
-                <Search size={20} />
-              </span>
-              <input
-                id="filtroContacto"
-                placeholder="Buscar contacto"
-                value={filtroContacto}
-                onChange={e => setFiltroContacto(e.target.value)}
-                className="pl-10 rounded-md border border-blue-200 focus:border-blue-500 focus:ring-blue-300 bg-white h-11 text-base w-full"
-                list="contactos-proveedores"
-              />
-              <datalist id="contactos-proveedores">
-                {contactosUnicos.map(contacto => (
-                  <option key={contacto} value={contacto} />
-                ))}
-              </datalist>
-            </div>
-            {/* Buscar por correo */}
-            <div className="flex flex-col relative w-full">
-              <label htmlFor="filtroCorreo" className="text-sm text-gray-700 mb-1 font-medium">Correo</label>
-              <span className="absolute left-3 top-[70%] -translate-y-1/2 text-blue-400 pointer-events-none">
-                <Search size={20} />
-              </span>
-              <input
-                id="filtroCorreo"
-                placeholder="Buscar correo"
-                value={filtroCorreo}
-                onChange={e => setFiltroCorreo(e.target.value)}
-                className="pl-10 rounded-md border border-blue-200 focus:border-blue-500 focus:ring-blue-300 bg-white h-11 text-base w-full"
-                list="correos-proveedores"
-              />
-              <datalist id="correos-proveedores">
-                {correosUnicos.map(correo => (
-                  <option key={correo} value={correo} />
-                ))}
-              </datalist>
-            </div>
-            {/* Buscar por teléfono */}
-            <div className="flex flex-col relative w-full">
-              <label htmlFor="filtroTelefono" className="text-sm text-gray-700 mb-1 font-medium">Teléfono</label>
-              <span className="absolute left-3 top-[70%] -translate-y-1/2 text-blue-400 pointer-events-none">
-                <Search size={20} />
-              </span>
-              <input
-                id="filtroTelefono"
-                placeholder="Buscar teléfono"
-                value={filtroTelefono}
-                onChange={e => setFiltroTelefono(e.target.value)}
-                className="pl-10 rounded-md border border-blue-200 focus:border-blue-500 focus:ring-blue-300 bg-white h-11 text-base w-full"
-              />
-            </div>
-            {/* Filtrar por ciudad */}
-            <div className="flex flex-col relative w-full">
-              <label htmlFor="filtroCiudad" className="text-sm text-gray-700 mb-1 font-medium">Ciudad</label>
-              <span className="absolute left-3 top-[70%] -translate-y-1/2 text-blue-400 pointer-events-none">
-                <Filter size={20} />
-              </span>
-              <select
-                id="filtroCiudad"
-                value={filtroCiudad}
-                onChange={e => setFiltroCiudad(e.target.value)}
-                className="pl-10 rounded-md border border-blue-200 focus:border-blue-500 focus:ring-blue-300 bg-white h-11 text-base w-full"
-              >
-                <option value="">Todas las ciudades</option>
-                {ciudadesUnicas.map(ciudad => (
-                  <option key={ciudad} value={ciudad}>{ciudad}</option>
-                ))}
-              </select>
+          {/* Filtros colapsables en móvil */}
+          <div className={`${isMobile && !filtrosAbiertos ? 'hidden' : ''}`}>
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-2 md:gap-2 w-full mb-4">
+              {/* Buscar por nombre */}
+              <div className="flex flex-col relative w-full">
+                <label htmlFor="filtroNombre" className="text-sm text-gray-700 mb-1 font-medium">Nombre</label>
+                <span className="absolute left-3 top-[70%] -translate-y-1/2 text-blue-400 pointer-events-none">
+                  <Search size={20} />
+                </span>
+                <input
+                  id="filtroNombre"
+                  placeholder="Buscar nombre"
+                  value={filtroNombre}
+                  onChange={e => setFiltroNombre(e.target.value)}
+                  className="pl-10 rounded-md border border-blue-200 focus:border-blue-500 focus:ring-blue-300 bg-white h-11 text-base w-full"
+                  list="nombres-proveedores"
+                />
+                <datalist id="nombres-proveedores">
+                  {nombresUnicos.map(nombre => (
+                    <option key={nombre} value={nombre} />
+                  ))}
+                </datalist>
+              </div>
+              {/* Buscar por contacto */}
+              <div className="flex flex-col relative w-full">
+                <label htmlFor="filtroContacto" className="text-sm text-gray-700 mb-1 font-medium">Contacto</label>
+                <span className="absolute left-3 top-[70%] -translate-y-1/2 text-blue-400 pointer-events-none">
+                  <Search size={20} />
+                </span>
+                <input
+                  id="filtroContacto"
+                  placeholder="Buscar contacto"
+                  value={filtroContacto}
+                  onChange={e => setFiltroContacto(e.target.value)}
+                  className="pl-10 rounded-md border border-blue-200 focus:border-blue-500 focus:ring-blue-300 bg-white h-11 text-base w-full"
+                  list="contactos-proveedores"
+                />
+                <datalist id="contactos-proveedores">
+                  {contactosUnicos.map(contacto => (
+                    <option key={contacto} value={contacto} />
+                  ))}
+                </datalist>
+              </div>
+              {/* Buscar por correo */}
+              <div className="flex flex-col relative w-full">
+                <label htmlFor="filtroCorreo" className="text-sm text-gray-700 mb-1 font-medium">Correo</label>
+                <span className="absolute left-3 top-[70%] -translate-y-1/2 text-blue-400 pointer-events-none">
+                  <Search size={20} />
+                </span>
+                <input
+                  id="filtroCorreo"
+                  placeholder="Buscar correo"
+                  value={filtroCorreo}
+                  onChange={e => setFiltroCorreo(e.target.value)}
+                  className="pl-10 rounded-md border border-blue-200 focus:border-blue-500 focus:ring-blue-300 bg-white h-11 text-base w-full"
+                  list="correos-proveedores"
+                />
+                <datalist id="correos-proveedores">
+                  {correosUnicos.map(correo => (
+                    <option key={correo} value={correo} />
+                  ))}
+                </datalist>
+              </div>
+              {/* Buscar por teléfono */}
+              <div className="flex flex-col relative w-full">
+                <label htmlFor="filtroTelefono" className="text-sm text-gray-700 mb-1 font-medium">Teléfono</label>
+                <span className="absolute left-3 top-[70%] -translate-y-1/2 text-blue-400 pointer-events-none">
+                  <Search size={20} />
+                </span>
+                <input
+                  id="filtroTelefono"
+                  placeholder="Buscar teléfono"
+                  value={filtroTelefono}
+                  onChange={e => setFiltroTelefono(e.target.value)}
+                  className="pl-10 rounded-md border border-blue-200 focus:border-blue-500 focus:ring-blue-300 bg-white h-11 text-base w-full"
+                />
+              </div>
+              {/* Filtrar por ciudad */}
+              <div className="flex flex-col relative w-full">
+                <label htmlFor="filtroCiudad" className="text-sm text-gray-700 mb-1 font-medium">Ciudad</label>
+                <span className="absolute left-3 top-[70%] -translate-y-1/2 text-blue-400 pointer-events-none">
+                  <Filter size={20} />
+                </span>
+                <select
+                  id="filtroCiudad"
+                  value={filtroCiudad}
+                  onChange={e => setFiltroCiudad(e.target.value)}
+                  className="pl-10 rounded-md border border-blue-200 focus:border-blue-500 focus:ring-blue-300 bg-white h-11 text-base w-full"
+                >
+                  <option value="">Todas las ciudades</option>
+                  {ciudadesUnicas.map(ciudad => (
+                    <option key={ciudad} value={ciudad}>{ciudad}</option>
+                  ))}
+                </select>
+              </div>
             </div>
           </div>
         </div>
