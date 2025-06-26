@@ -489,8 +489,8 @@ export default function ProductosPage() {
       </div>
 
       {/* Filtros avanzados */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-6">
-        <div className="flex items-center gap-2 mb-4">
+      <div className="mb-4">
+        <div className="flex flex-wrap items-center gap-2 mb-2">
           <Filter className="text-blue-500" size={20} />
           <h3 className="font-semibold text-gray-700">Filtros</h3>
           <span className="ml-2 text-xs text-gray-500">{productosFiltrados.length} resultado(s)</span>
@@ -502,21 +502,25 @@ export default function ProductosPage() {
           >
             <X size={16} /> Limpiar
           </Button>
-          {isMobile && (
-            <Button variant="outline" size="sm" onClick={() => setFiltrosAbiertos((v) => !v)}>
-              {filtrosAbiertos ? 'Ocultar' : 'Mostrar'} filtros
-            </Button>
-          )}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setFiltrosAbiertos((v) => !v)}
+            className="md:hidden"
+          >
+            {filtrosAbiertos ? 'Ocultar' : 'Mostrar'} filtros
+          </Button>
         </div>
-        {(!isMobile || filtrosAbiertos) && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Filtros colapsables en móvil */}
+        <div className={`${isMobile && !filtrosAbiertos ? 'hidden' : ''}`}>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {/* Filtro por nombre */}
-            <div>
+            <div className="w-full">
               <Input
                 placeholder="Buscar productos..."
                 value={busqueda}
                 onChange={(e) => setBusqueda(e.target.value)}
-                className="pl-10 rounded-lg border-blue-200 focus:border-blue-400 focus:ring-blue-300"
+                className="pl-10 rounded-lg border-blue-200 focus:border-blue-400 focus:ring-blue-300 w-full"
               />
               <div className="flex items-center gap-2 mt-1">
                 <input type="checkbox" id="nombreExacto" checked={nombreExacto} onChange={() => setNombreExacto(!nombreExacto)} />
@@ -524,29 +528,29 @@ export default function ProductosPage() {
               </div>
             </div>
             {/* Filtro por categoría (multi) */}
-            <div>
+            <div className="w-full">
               <MultiSelect
                 label="Categoría"
                 options={categoriasLocales.map(cat => ({ label: cat.nombre, value: String(cat.id) }))}
                 value={categoriaFiltro}
                 onChange={setCategoriaFiltro}
                 placeholder="Seleccionar categoría..."
-                className="mb-2"
+                className="mb-2 w-full"
               />
             </div>
             {/* Filtro por proveedor (multi) */}
-            <div>
+            <div className="w-full">
               <MultiSelect
                 label="Proveedor"
                 options={proveedores.map(prov => ({ label: prov.nombre, value: String(prov.id) }))}
                 value={proveedorFiltro}
                 onChange={setProveedorFiltro}
                 placeholder="Seleccionar proveedor..."
-                className="mb-2"
+                className="mb-2 w-full"
               />
             </div>
             {/* Filtro por stock */}
-            <div>
+            <div className="w-full">
               <label className="text-xs text-gray-500">Stock</label>
               <div className="flex gap-2 flex-wrap mt-1">
                 <label className="flex items-center gap-1 text-xs">
@@ -564,7 +568,7 @@ export default function ProductosPage() {
               </div>
             </div>
             {/* Filtro por precio */}
-            <div className="col-span-2 md:col-span-1">
+            <div className="w-full">
               <label className="text-xs text-gray-500">Precio</label>
               <div className="flex gap-2 mt-1">
                 <Input
@@ -572,22 +576,22 @@ export default function ProductosPage() {
                   placeholder="Mínimo"
                   value={precioMin}
                   onChange={(e) => setPrecioMin(e.target.value)}
-                  className="rounded-lg border-blue-200 focus:border-blue-400 focus:ring-blue-300"
+                  className="rounded-lg border-blue-200 focus:border-blue-400 focus:ring-blue-300 w-full"
                 />
                 <Input
                   type="number"
                   placeholder="Máximo"
                   value={precioMax}
                   onChange={(e) => setPrecioMax(e.target.value)}
-                  className="rounded-lg border-blue-200 focus:border-blue-400 focus:ring-blue-300"
+                  className="rounded-lg border-blue-200 focus:border-blue-400 focus:ring-blue-300 w-full"
                 />
               </div>
             </div>
             {/* Filtro de orden */}
-            <div className="col-span-2 md:col-span-1">
+            <div className="w-full">
               <label className="text-xs text-gray-500">Ordenar por</label>
               <div className="flex gap-2 mt-1">
-                <select className="rounded-lg border-blue-200 focus:border-blue-400 focus:ring-blue-300" value={orden} onChange={e => setOrden(e.target.value as any)}>
+                <select className="rounded-lg border-blue-200 focus:border-blue-400 focus:ring-blue-300 w-full" value={orden} onChange={e => setOrden(e.target.value as any)}>
                   <option value="nombre">Nombre</option>
                   <option value="precio">Precio</option>
                   <option value="stock">Stock</option>
@@ -598,7 +602,7 @@ export default function ProductosPage() {
               </div>
             </div>
           </div>
-        )}
+        </div>
       </div>
 
       {/* Grid de tarjetas o tabla según la vista elegida */}
