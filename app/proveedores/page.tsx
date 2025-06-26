@@ -21,6 +21,7 @@ import autoTable from "jspdf-autotable";
 import ExcelJS from "exceljs";
 import { MultiSelect } from "@/components/ui/MultiSelect";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { ExportButton } from "@/components/ui/ExportButton";
 
 interface Proveedor {
   id: number;
@@ -333,7 +334,7 @@ export default function ProveedoresPage() {
 
   return (
     <div className="min-h-screen bg-[#f6f8fa] flex flex-col items-center justify-start py-4">
-      <div className="w-full max-w-5xl p-4 sm:p-8 mx-auto">
+      <div className="w-full max-w-7xl px-4 sm:px-8 mx-auto">
         <ToastContainer toasts={toasts} onClose={removeToast} />
         {/* Encabezado */}
         <div className="flex items-center gap-2 mb-6">
@@ -369,30 +370,30 @@ export default function ProveedoresPage() {
             >
               Limpiar
             </Button>
-            <Button
-              variant="outline"
-              size="sm"
+            <ExportButton
               onClick={() => exportarProveedoresAExcel(
                 seleccionados.length > 0 ? proveedores.filter(p => seleccionados.includes(p.id)) : proveedoresFiltrados,
                 nombreArchivoExportacion(seleccionados.length > 0 ? 'Seleccionados' : 'Filtrados', 'xlsx')
               )}
-              className="ml-2 flex items-center gap-1"
+              icon={
+                <svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path d="M16 16v2a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M7 9h6M7 13h4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M20 7v6m0 0l2-2m-2 2l-2-2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              }
               title={seleccionados.length > 0 ? "Exportar seleccionados a Excel" : "Exportar proveedores filtrados a Excel"}
             >
               Exportar Excel
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
+            </ExportButton>
+            <ExportButton
               onClick={() => exportarProveedoresAPDF(
                 seleccionados.length > 0 ? proveedores.filter(p => seleccionados.includes(p.id)) : proveedoresFiltrados,
                 nombreArchivoExportacion(seleccionados.length > 0 ? 'Seleccionados' : 'Filtrados', 'pdf')
               )}
-              className="ml-2 flex items-center gap-1"
+              icon={
+                <svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path d="M16 16v2a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M7 9h6M7 13h4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M20 7v6m0 0l2-2m-2 2l-2-2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              }
               title={seleccionados.length > 0 ? "Exportar seleccionados a PDF" : "Exportar proveedores filtrados a PDF"}
             >
               Exportar PDF
-            </Button>
+            </ExportButton>
           </div>
           <div className="relative w-full mt-2">
             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-blue-400 pointer-events-none">

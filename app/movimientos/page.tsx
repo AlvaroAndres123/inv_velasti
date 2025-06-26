@@ -28,6 +28,11 @@ import { useToast, ToastContainer } from "@/components/ui/toast";
 import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { useMediaQuery } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
+import { ExportButton } from "@/components/ui/ExportButton";
+import { saveAs } from "file-saver";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
+import ExcelJS from "exceljs";
 
 interface Movimiento {
   productoId: number;
@@ -226,6 +231,136 @@ const movimiento = {
   const totalPaginas = Math.max(1, Math.ceil(movimientosFiltrados.length / movimientosPorPagina));
   const movimientosPaginados = movimientosFiltrados.slice((paginaActual - 1) * movimientosPorPagina, paginaActual * movimientosPorPagina);
 
+  // Función para generar nombre de archivo exportado
+  function nombreArchivoExportacion(tipo: 'Filtrados', extension: 'xlsx' | 'pdf') {
+    const fecha = new Date();
+    const yyyy = fecha.getFullYear();
+    const mm = String(fecha.getMonth() + 1).padStart(2, '0');
+    const dd = String(fecha.getDate()).padStart(2, '0');
+    return `AlmaSoft_Movimientos_${yyyy}${mm}${dd}_${tipo}.${extension}`;
+  }
+  // Exportar a Excel
+  function exportarMovimientosAExcel(movimientosExportar: Movimiento[], nombreArchivo: string) {
+    if (!movimientosExportar.length) return;
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet("Movimientos");
+    worksheet.mergeCells("A1:F1");
+    const logoCell = worksheet.getCell("A1");
+    logoCell.value = "Movimientos";
+    logoCell.font = { name: "Calibri", bold: true, size: 22, color: { argb: "FF2196F3" } };
+    logoCell.alignment = { horizontal: "center", vertical: "middle" };
+    worksheet.addRow([]);
+    worksheet.columns = [
+      { header: "Fecha", key: "fecha", width: 14 },
+      { header: "Tipo", key: "tipo", width: 10 },
+      { header: "Producto", key: "producto", width: 24 },
+      { header: "Cantidad", key: "cantidad", width: 10 },
+      { header: "Motivo", key: "motivo", width: 30 },
+    ];
+    movimientosExportar.forEach((m) => {
+      worksheet.addRow({
+        fecha: m.fecha,
+        tipo: m.tipo.charAt(0).toUpperCase() + m.tipo.slice(1),
+        producto: m.producto?.nombre || '',
+        cantidad: m.cantidad,
+        motivo: m.motivo,
+      });
+    });
+    const headerRowIdx = 3;
+    worksheet.getRow(headerRowIdx).eachCell((cell) => {
+      cell.font = { bold: true, color: { argb: "FFFFFFFF" } };
+      cell.fill = {
+        type: "pattern",
+        pattern: "solid",
+        fgColor: { argb: "FF2196F3" },
+      };
+      cell.alignment = { horizontal: "center" };
+      cell.border = {
+        top: { style: "thin", color: { argb: "FFAAAAAA" } },
+        bottom: { style: "thin", color: { argb: "FFAAAAAA" } },
+        left: { style: "thin", color: { argb: "FFAAAAAA" } },
+        right: { style: "thin", color: { argb: "FFAAAAAA" } },
+      };
+    });
+    worksheet.eachRow((row, rowNumber) => {
+      if (rowNumber < headerRowIdx) return;
+      row.eachCell((cell) => {
+        cell.border = {
+          top: { style: "thin", color: { argb: "FFAAAAAA" } },
+          bottom: { style: "thin", color: { argb: "FFAAAAAA" } },
+          left: { style: "thin", color: { argb: "FFAAAAAA" } },
+          right: { style: "thin", color: { argb: "FFAAAAAA" } },
+        };
+        cell.font = cell.font || { name: "Calibri", size: 11 };
+      });
+    });
+    const colCount = worksheet.getRow(headerRowIdx).cellCount;
+    const lastCol = String.fromCharCode(64 + colCount);
+    worksheet.autoFilter = {
+      from: `A${headerRowIdx}`,
+      to: `${lastCol}${headerRowIdx}`,
+    };
+    const fecha = new Date().toLocaleDateString();
+    const pieRow = worksheet.addRow([]);
+    pieRow.getCell(1).value = `Exportado desde AlmaSoft - Fecha: ${fecha}`;
+    worksheet.mergeCells(`A${pieRow.number}:E${pieRow.number}`);
+    pieRow.getCell(1).alignment = { horizontal: "center" };
+    pieRow.getCell(1).font = { color: { argb: "FF888888" }, italic: true, size: 11 };
+    workbook.xlsx.writeBuffer().then((buffer) => {
+      const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+      saveAs(blob, nombreArchivo);
+    });
+  }
+  // Exportar a PDF
+  function exportarMovimientosAPDF(movimientosExportar: Movimiento[], nombreArchivo: string) {
+    if (!movimientosExportar.length) return;
+    const doc = new jsPDF();
+    doc.setFontSize(22);
+    doc.setTextColor(33, 150, 243);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Movimientos', doc.internal.pageSize.getWidth() / 2, 22, { align: 'center' });
+    doc.setDrawColor(33, 150, 243);
+    doc.setLineWidth(1);
+    doc.line(20, 28, doc.internal.pageSize.getWidth() - 20, 28);
+    const columns = [
+      { header: "Fecha", dataKey: "fecha" },
+      { header: "Tipo", dataKey: "tipo" },
+      { header: "Producto", dataKey: "producto" },
+      { header: "Cantidad", dataKey: "cantidad" },
+      { header: "Motivo", dataKey: "motivo" },
+    ];
+    const data = movimientosExportar.map((m) => ({
+      fecha: m.fecha,
+      tipo: m.tipo.charAt(0).toUpperCase() + m.tipo.slice(1),
+      producto: m.producto?.nombre || '',
+      cantidad: m.cantidad,
+      motivo: m.motivo,
+    }));
+    autoTable(doc, {
+      startY: 34,
+      head: [columns.map(col => col.header)],
+      body: data.map(row => columns.map(col => (row as any)[col.dataKey])),
+      styles: { fontSize: 10, cellPadding: 3, font: 'helvetica', textColor: [33, 37, 41] },
+      headStyles: { fillColor: [33, 150, 243], textColor: 255, fontStyle: 'bold', fontSize: 11 },
+      alternateRowStyles: { fillColor: [240, 248, 255] },
+      tableLineColor: [180, 180, 180],
+      tableLineWidth: 0.3,
+      margin: { left: 14, right: 14 },
+      tableWidth: 'auto',
+    });
+    const fecha = new Date().toLocaleDateString();
+    doc.setFontSize(10);
+    doc.setTextColor(150, 150, 150);
+    doc.setFont('helvetica', 'italic');
+    doc.text(
+      `Exportado desde AlmaSoft - Fecha: ${fecha}`,
+      doc.internal.pageSize.getWidth() / 2,
+      doc.internal.pageSize.getHeight() - 10,
+      { align: 'center' }
+    );
+    doc.save(nombreArchivo);
+  }
+
   // Spinner de carga
   if (!productos.length && !movimientos.length) {
     return (
@@ -243,7 +378,7 @@ const movimiento = {
 
   return (
     <div className="min-h-screen bg-[#f6f8fa] flex flex-col items-center justify-start py-4">
-      <div className="w-full max-w-6xl bg-white rounded-2xl shadow-xl border border-gray-200 p-4 sm:p-8 mx-auto">
+      <div className="w-full max-w-7xl px-4 sm:px-8 mx-auto">
         {/* Encabezado */}
         <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-4 mb-2">
           <div className="flex items-center gap-2">
@@ -921,6 +1056,22 @@ const movimiento = {
             <Plus size={32} />
           </Button>
         </div>
+
+        {/* En la interfaz, agregar los botones de exportación cerca de los filtros o la tabla: */}
+        <ExportButton
+          onClick={() => exportarMovimientosAExcel(movimientosFiltrados, nombreArchivoExportacion('Filtrados', 'xlsx'))}
+          icon={<svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path d="M16 16v2a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M7 9h6M7 13h4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M20 7v6m0 0l2-2m-2 2l-2-2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+          title="Exportar movimientos filtrados a Excel"
+        >
+          Exportar Excel
+        </ExportButton>
+        <ExportButton
+          onClick={() => exportarMovimientosAPDF(movimientosFiltrados, nombreArchivoExportacion('Filtrados', 'pdf'))}
+          icon={<svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path d="M16 16v2a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M7 9h6M7 13h4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M20 7v6m0 0l2-2m-2 2l-2-2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+          title="Exportar movimientos filtrados a PDF"
+        >
+          Exportar PDF
+        </ExportButton>
       </div>
     </div>
   );
