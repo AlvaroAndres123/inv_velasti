@@ -18,7 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, Pencil, Trash2, BadgeCheck, AlertTriangle, Package, PlusCircle, Search, Filter, X } from "lucide-react";
+import { Plus, Pencil, Trash2, BadgeCheck, AlertTriangle, Package, PlusCircle, Search, Filter, X, LayoutGrid, Table } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { useToast, ToastContainer } from "@/components/ui/toast";
@@ -212,6 +212,21 @@ export default function ProductosPage() {
 
   // Debounce para la búsqueda
   const busquedaDebounced = useDebounce(busqueda, 300);
+
+  // Estado para el tipo de vista
+  const [vista, setVista] = useState<'tabla' | 'tarjetas'>(() => {
+    if (typeof window !== 'undefined') {
+      return (localStorage.getItem('vistaProductos') as 'tabla' | 'tarjetas') || 'tabla';
+    }
+    return 'tabla';
+  });
+
+  // Guardar preferencia en localStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('vistaProductos', vista);
+    }
+  }, [vista]);
 
   // Verificar autenticación
   useEffect(() => {
@@ -408,19 +423,36 @@ export default function ProductosPage() {
       
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-        <h2 className="text-3xl font-bold text-gray-800 flex items-center gap-2">
-          <Package className="text-blue-500" size={32} /> 
-          Productos
-          <span className="text-sm font-normal text-gray-500 ml-2">
-            ({productosFiltrados.length} de {productos.length})
-          </span>
-        </h2>
-        <Button
-          onClick={abrirModalAgregar}
-          className="flex gap-2 whitespace-nowrap bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg shadow-md transition-transform hover:scale-105"
-        >
-          <PlusCircle size={20} /> Agregar producto
-        </Button>
+        <div className="flex items-center gap-2">
+          <h2 className="text-3xl font-bold text-gray-800 flex items-center gap-2">
+            <Package className="text-blue-500" size={32} /> 
+            Productos
+            <span className="text-sm font-normal text-gray-500 ml-2">
+              ({productosFiltrados.length} de {productos.length})
+            </span>
+          </h2>
+        </div>
+        {/* Switch de vista */}
+        <div className="flex gap-2 items-center">
+          <Button
+            variant={vista === 'tabla' ? 'default' : 'outline'}
+            size="icon"
+            aria-label="Vista tabla"
+            className={vista === 'tabla' ? 'bg-blue-600 text-white' : ''}
+            onClick={() => setVista('tabla')}
+          >
+            <Table size={20} />
+          </Button>
+          <Button
+            variant={vista === 'tarjetas' ? 'default' : 'outline'}
+            size="icon"
+            aria-label="Vista tarjetas"
+            className={vista === 'tarjetas' ? 'bg-blue-600 text-white' : ''}
+            onClick={() => setVista('tarjetas')}
+          >
+            <LayoutGrid size={20} />
+          </Button>
+        </div>
       </div>
 
       {/* Filtros */}
@@ -496,172 +528,191 @@ export default function ProductosPage() {
         </div>
       </div>
 
-      {/* Grid de tarjetas en móvil/tablet */}
-      <div className="block lg:hidden">
-        <AnimatePresence>
-          {productosFiltrados.length === 0 ? (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="flex flex-col items-center justify-center min-h-[200px] text-blue-500"
-            >
-              <Package size={48} className="mb-2" />
-              <span className="text-lg font-semibold">No hay productos para mostrar</span>
-              <span className="text-sm text-gray-500 mt-1">
-                {productos.length > 0 ? "Intenta ajustar los filtros" : "Agrega tu primer producto"}
-              </span>
-            </motion.div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-              {productosFiltrados.map((prod) => (
-                <motion.div
-                  key={prod.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: 20 }}
-                  className="bg-white rounded-xl shadow-md p-4 flex flex-col gap-2 border border-blue-50 hover:shadow-lg transition group"
-                >
-                  <div className="flex items-center gap-3">
-                    {prod.imagen ? (
-                      <img
-                        src={prod.imagen}
-                        alt={prod.nombre}
-                        className="w-16 h-16 object-cover rounded-md border"
-                        loading="lazy"
-                      />
-                    ) : (
-                      <div className="w-16 h-16 bg-gray-200 rounded-md flex items-center justify-center">
-                        <Package className="text-gray-400" size={28} />
-                      </div>
-                    )}
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <span className="font-bold text-blue-900 text-lg">
-                          {prod.nombre}
-                        </span>
-                        {prod.stock <= 0 ? (
-                          <span className="ml-2 px-2 py-0.5 rounded-full bg-red-100 text-red-600 text-xs font-semibold flex items-center gap-1">
-                            <AlertTriangle size={14} /> Agotado
+      {/* Grid de tarjetas o tabla según la vista elegida */}
+      {vista === 'tarjetas' ? (
+        <div className="w-full">
+          <AnimatePresence>
+            {productosFiltrados.length === 0 ? (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="flex flex-col items-center justify-center min-h-[200px] text-blue-500"
+              >
+                <Package size={48} className="mb-2" />
+                <span className="text-lg font-semibold">No hay productos para mostrar</span>
+                <span className="text-sm text-gray-500 mt-1">
+                  {productos.length > 0 ? "Intenta ajustar los filtros" : "Agrega tu primer producto"}
+                </span>
+              </motion.div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                {productosFiltrados.map((prod) => (
+                  <motion.div
+                    key={prod.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 20 }}
+                    className="bg-white rounded-xl shadow-md p-4 flex flex-col gap-2 border border-blue-50 hover:shadow-lg transition group"
+                  >
+                    <div className="flex items-center gap-3">
+                      {prod.imagen ? (
+                        <img
+                          src={prod.imagen}
+                          alt={prod.nombre}
+                          className="w-16 h-16 object-cover rounded-md border"
+                          loading="lazy"
+                        />
+                      ) : (
+                        <div className="w-16 h-16 bg-gray-200 rounded-md flex items-center justify-center">
+                          <Package className="text-gray-400" size={28} />
+                        </div>
+                      )}
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-blue-900 text-lg">
+                            {prod.nombre}
                           </span>
-                        ) : prod.stock <= 10 ? (
-                          <span className="ml-2 px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-700 text-xs font-semibold flex items-center gap-1">
-                            <AlertTriangle size={14} /> Stock bajo
-                          </span>
-                        ) : (
-                          <span className="ml-2 px-2 py-0.5 rounded-full bg-green-100 text-green-700 text-xs font-semibold flex items-center gap-1">
-                            <BadgeCheck size={14} /> Stock OK
-                          </span>
-                        )}
-                      </div>
-                      <div className="text-xs text-gray-500">
-                        {prod.categoria?.nombre || "Sin categoría"} • {prod.proveedor?.nombre || "Sin proveedor"}
+                          {prod.stock <= 0 ? (
+                            <span className="ml-2 px-2 py-0.5 rounded-full bg-red-100 text-red-600 text-xs font-semibold flex items-center gap-1">
+                              <AlertTriangle size={14} /> Agotado
+                            </span>
+                          ) : prod.stock <= 10 ? (
+                            <span className="ml-2 px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-700 text-xs font-semibold flex items-center gap-1">
+                              <AlertTriangle size={14} /> Stock bajo
+                            </span>
+                          ) : (
+                            <span className="ml-2 px-2 py-0.5 rounded-full bg-green-100 text-green-700 text-xs font-semibold flex items-center gap-1">
+                              <BadgeCheck size={14} /> Stock OK
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          {prod.categoria?.nombre || "Sin categoría"} • {prod.proveedor?.nombre || "Sin proveedor"}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                  <div className="flex flex-col gap-1 mt-2">
-                    <span className="text-gray-700 text-sm line-clamp-2">{prod.descripcion}</span>
-                    <span className="text-blue-700 font-bold">C$ {prod.precio.toFixed(2)}</span>
-                    <span className="text-xs text-gray-500">Stock: {prod.stock}</span>
-                  </div>
-                  <div className="flex gap-2 mt-2">
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={() => pedirConfirmacionEliminar(prod)}
-                      className="hover:bg-blue-100"
-                      title="Eliminar"
-                    >
-                      <Trash2 size={16} />
-                    </Button>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-          )}
-        </AnimatePresence>
-      </div>
-
-      {/* Tabla en desktop */}
-      <div className="hidden lg:block overflow-x-auto rounded-xl shadow">
-        <table className="min-w-full text-sm text-left text-gray-700 bg-white">
-          <thead className="bg-gray-100 text-xs uppercase text-gray-500">
-            <tr>
-              <th className="px-6 py-4">Imagen</th>
-              <th className="px-6 py-4">Nombre</th>
-              <th className="px-6 py-4">Categoría</th>
-              <th className="px-6 py-4">Proveedor</th>
-              <th className="px-6 py-4">Precio</th>
-              <th className="px-6 py-4">Stock</th>
-              <th className="px-6 py-4">Acciones</th>
-            </tr>
-          </thead>
-          <tbody>
-            {productosFiltrados.length === 0 ? (
-              <tr>
-                <td colSpan={7} className="text-center py-8 text-blue-500">
-                  <Package size={32} className="mx-auto mb-2" />
-                  <div>No hay productos para mostrar</div>
-                  <div className="text-sm text-gray-500 mt-1">
-                    {productos.length > 0 ? "Intenta ajustar los filtros" : "Agrega tu primer producto"}
-                  </div>
-                </td>
-              </tr>
-            ) : (
-              productosFiltrados.map((prod) => (
-                <tr key={prod.id} className="border-t hover:bg-blue-50/40 transition">
-                  <td className="px-6 py-4">
-                    {prod.imagen ? (
-                      <img
-                        src={prod.imagen}
-                        alt={prod.nombre}
-                        className="w-16 h-16 object-cover rounded-md border"
-                        loading="lazy"
-                      />
-                    ) : (
-                      <div className="w-16 h-16 bg-gray-200 rounded-md flex items-center justify-center">
-                        <Package className="text-gray-400" size={28} />
-                      </div>
-                    )}
-                  </td>
-                  <td className="px-6 py-4 font-medium">{prod.nombre}</td>
-                  <td className="px-6 py-4">{prod.categoria?.nombre || "Sin categoría"}</td>
-                  <td className="px-6 py-4">{prod.proveedor?.nombre || "Sin proveedor"}</td>
-                  <td className="px-6 py-4">C${prod.precio.toFixed(2)}</td>
-                  <td className="px-6 py-4">
-                    {prod.stock <= 0 ? (
-                      <span className="px-2 py-0.5 rounded-full bg-red-100 text-red-600 text-xs font-semibold flex items-center gap-1">
-                        <AlertTriangle size={14} /> Agotado
-                      </span>
-                    ) : prod.stock <= 10 ? (
-                      <span className="px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-700 text-xs font-semibold flex items-center gap-1">
-                        <AlertTriangle size={14} /> Stock bajo
-                      </span>
-                    ) : (
-                      <span className="px-2 py-0.5 rounded-full bg-green-100 text-green-700 text-xs font-semibold flex items-center gap-1">
-                        <BadgeCheck size={14} /> Stock OK
-                      </span>
-                    )}
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="flex gap-2">
+                    <div className="flex flex-col gap-1 mt-2">
+                      <span className="text-gray-700 text-sm line-clamp-2">{prod.descripcion}</span>
+                      <span className="text-blue-700 font-bold">C$ {prod.precio.toFixed(2)}</span>
+                      <span className="text-xs text-gray-500">Stock: {prod.stock}</span>
+                    </div>
+                    <div className="flex gap-2 mt-2">
                       <Button
                         variant="outline"
                         size="icon"
-                        onClick={() => pedirConfirmacionEliminar(prod)}
+                        onClick={() => abrirModalEditar(prod)}
                         className="hover:bg-blue-100"
+                        title="Editar"
+                      >
+                        <Pencil size={16} />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="hover:bg-red-100 text-red-500"
+                        onClick={() => pedirConfirmacionEliminar(prod)}
                         title="Eliminar"
                       >
                         <Trash2 size={16} />
                       </Button>
                     </div>
+                  </motion.div>
+                ))}
+              </div>
+            )}
+          </AnimatePresence>
+        </div>
+      ) : (
+        <div className="w-full overflow-x-auto rounded-xl shadow">
+          <table className="min-w-full text-sm text-left text-gray-700 bg-white">
+            <thead className="bg-gray-100 text-xs uppercase text-gray-500">
+              <tr>
+                <th className="px-6 py-4">Imagen</th>
+                <th className="px-6 py-4">Nombre</th>
+                <th className="px-6 py-4">Categoría</th>
+                <th className="px-6 py-4">Proveedor</th>
+                <th className="px-6 py-4">Precio</th>
+                <th className="px-6 py-4">Stock</th>
+                <th className="px-6 py-4">Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              {productosFiltrados.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="text-center py-8 text-blue-500">
+                    <Package size={32} className="mx-auto mb-2" />
+                    <div>No hay productos para mostrar</div>
+                    <div className="text-sm text-gray-500 mt-1">
+                      {productos.length > 0 ? "Intenta ajustar los filtros" : "Agrega tu primer producto"}
+                    </div>
                   </td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+              ) : (
+                productosFiltrados.map((prod) => (
+                  <tr key={prod.id} className="border-t hover:bg-blue-50/40 transition">
+                    <td className="px-6 py-4">
+                      {prod.imagen ? (
+                        <img
+                          src={prod.imagen}
+                          alt={prod.nombre}
+                          className="w-16 h-16 object-cover rounded-md border"
+                          loading="lazy"
+                        />
+                      ) : (
+                        <div className="w-16 h-16 bg-gray-200 rounded-md flex items-center justify-center">
+                          <Package className="text-gray-400" size={28} />
+                        </div>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 font-medium">{prod.nombre}</td>
+                    <td className="px-6 py-4">{prod.categoria?.nombre || "Sin categoría"}</td>
+                    <td className="px-6 py-4">{prod.proveedor?.nombre || "Sin proveedor"}</td>
+                    <td className="px-6 py-4">C${prod.precio.toFixed(2)}</td>
+                    <td className="px-6 py-4">
+                      {prod.stock <= 0 ? (
+                        <span className="px-2 py-0.5 rounded-full bg-red-100 text-red-600 text-xs font-semibold flex items-center gap-1">
+                          <AlertTriangle size={14} /> Agotado
+                        </span>
+                      ) : prod.stock <= 10 ? (
+                        <span className="px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-700 text-xs font-semibold flex items-center gap-1">
+                          <AlertTriangle size={14} /> Stock bajo
+                        </span>
+                      ) : (
+                        <span className="px-2 py-0.5 rounded-full bg-green-100 text-green-700 text-xs font-semibold flex items-center gap-1">
+                          <BadgeCheck size={14} /> Stock OK
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          onClick={() => abrirModalEditar(prod)}
+                          className="hover:bg-blue-100"
+                          title="Editar"
+                        >
+                          <Pencil size={16} />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="hover:bg-red-100 text-red-500"
+                          onClick={() => pedirConfirmacionEliminar(prod)}
+                          title="Eliminar"
+                        >
+                          <Trash2 size={16} />
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       {/* Modal de producto */}
       <Dialog open={modalAbierto} onOpenChange={setModalAbierto}>
