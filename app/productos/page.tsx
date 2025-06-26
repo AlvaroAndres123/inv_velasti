@@ -1206,8 +1206,8 @@ export default function ProductosPage() {
       <Dialog open={modalAbierto} onOpenChange={setModalAbierto}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>
-              {modoEdicion ? "Editar Producto" : "Agregar Producto"}
+            <DialogTitle className="flex items-center gap-2 text-blue-700">
+              <Package size={22} /> {modoEdicion ? "Editar Producto" : "Agregar Producto"}
             </DialogTitle>
           </DialogHeader>
           <form className="space-y-4" onSubmit={guardarProducto}>
@@ -1222,7 +1222,6 @@ export default function ProductosPage() {
                 placeholder="Nombre del producto"
               />
             </div>
-
             <div>
               <Label htmlFor="descripcion">Descripción *</Label>
               <Textarea
@@ -1235,59 +1234,53 @@ export default function ProductosPage() {
                 rows={3}
               />
             </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="categoria">Categoría *</Label>
-                <div className="flex items-center gap-2">
-                  <Select
-                    name="categoria"
-                    defaultValue={productoActual?.categoriaId?.toString() || ""}
-                  >
-                    <SelectTrigger className="flex-1 rounded-lg border-blue-200 focus:border-blue-400 focus:ring-blue-300">
-                      <SelectValue placeholder="Seleccionar categoría" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {categoriasLocales.map((cat) => (
-                        <SelectItem key={cat.id} value={cat.id.toString()}>
-                          {cat.nombre}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => setModalCategoria(true)}
-                    title="Agregar categoría"
-                  >
-                    <Plus size={18} />
-                  </Button>
-                </div>
-              </div>
-
-              <div>
-                <Label htmlFor="proveedor">Proveedor *</Label>
+            <div>
+              <Label htmlFor="categoria">Categoría *</Label>
+              <div className="flex items-center gap-2">
                 <Select
-                  name="proveedor"
-                  defaultValue={productoActual?.proveedorId?.toString() || ""}
+                  name="categoria"
+                  defaultValue={productoActual?.categoriaId?.toString() || ""}
                 >
-                  <SelectTrigger className="rounded-lg border-blue-200 focus:border-blue-400 focus:ring-blue-300">
-                    <SelectValue placeholder="Seleccionar proveedor" />
+                  <SelectTrigger className="flex-1 rounded-lg border-blue-200 focus:border-blue-400 focus:ring-blue-300 h-11 text-base">
+                    <SelectValue placeholder="Seleccionar categoría" />
                   </SelectTrigger>
                   <SelectContent>
-                    {proveedores.map((prov) => (
-                      <SelectItem key={prov.id} value={prov.id.toString()}>
-                        {prov.nombre}
+                    {categoriasLocales.map((cat) => (
+                      <SelectItem key={cat.id} value={cat.id.toString()}>
+                        {cat.nombre}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setModalCategoria(true)}
+                  title="Agregar categoría"
+                >
+                  <Plus size={18} />
+                </Button>
               </div>
             </div>
-
+            <div>
+              <Label htmlFor="proveedor">Proveedor *</Label>
+              <Select
+                name="proveedor"
+                defaultValue={productoActual?.proveedorId?.toString() || ""}
+              >
+                <SelectTrigger className="rounded-lg border-blue-200 focus:border-blue-400 focus:ring-blue-300 h-11 text-base">
+                  <SelectValue placeholder="Seleccionar proveedor" />
+                </SelectTrigger>
+                <SelectContent>
+                  {proveedores.map((prov) => (
+                    <SelectItem key={prov.id} value={prov.id.toString()}>
+                      {prov.nombre}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="precio">Precio (C$) *</Label>
@@ -1317,7 +1310,6 @@ export default function ProductosPage() {
                 />
               </div>
             </div>
-
             <div>
               <Label htmlFor="imagen">Imagen</Label>
               <Input
@@ -1336,10 +1328,9 @@ export default function ProductosPage() {
                 />
               )}
             </div>
-
-            <Button 
-              type="submit" 
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-md"
+            <Button
+              type="submit"
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-md flex items-center justify-center gap-2"
               disabled={guardando}
             >
               {guardando ? (
@@ -1351,7 +1342,7 @@ export default function ProductosPage() {
                   Guardando...
                 </div>
               ) : (
-                modoEdicion ? "Guardar cambios" : "Agregar producto"
+                modoEdicion ? <><Pencil size={18}/> Guardar cambios</> : <><Plus size={18}/> Agregar producto</>
               )}
             </Button>
           </form>
@@ -1440,6 +1431,21 @@ export default function ProductosPage() {
           <Button variant="ghost" size="sm" onClick={limpiarSeleccion}>Cancelar</Button>
         </div>
       )}
+
+      <div
+        className="fixed bottom-8 right-8 z-50"
+      >
+        <Button
+          size="icon"
+          className="bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg w-16 h-16 flex items-center justify-center text-3xl transition-transform hover:scale-110"
+          onClick={abrirModalAgregar}
+          title="Agregar producto"
+          aria-label="Agregar producto"
+          style={{ boxShadow: '0 4px 24px 0 rgba(33,150,243,0.18)' }}
+        >
+          <Plus size={32} />
+        </Button>
+      </div>
     </div>
   );
 }
