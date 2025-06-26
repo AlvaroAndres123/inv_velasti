@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import {
   Dialog,
   DialogContent,
@@ -18,12 +18,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, Pencil, Trash2, BadgeCheck, AlertTriangle, Package, PlusCircle } from "lucide-react";
-import { useEffect } from "react";
+import { Plus, Pencil, Trash2, BadgeCheck, AlertTriangle, Package, PlusCircle, Search, Filter, X } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { List } from "lucide-react";
-import AutoCompleteProveedor from "@/components/AutoCompleteProveedor";
-import ModalSeleccionarProveedor from "@/components/modales/ModalSeleccionarProveedor";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface Producto {
@@ -39,190 +35,288 @@ interface Producto {
   proveedor?: { nombre: string };
 }
 
+interface Categoria {
+  id: number;
+  nombre: string;
+}
+
+interface Proveedor {
+  id: number;
+  nombre: string;
+}
+
+// Hook personalizado para debounce
+function useDebounce<T>(value: T, delay: number): T {
+  const [debouncedValue, setDebouncedValue] = useState<T>(value);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [value, delay]);
+
+  return debouncedValue;
+}
+
+// Hook personalizado para manejo de productos
+function useProductos() {
+  const [productos, setProductos] = useState<Producto[]>([]);
+  const [cargando, setCargando] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const cargarProductos = useCallback(async () => {
+    try {
+      setCargando(true);
+      setError(null);
+      const res = await fetch("/api/productos");
+      if (!res.ok) throw new Error("Error al cargar productos");
+      const data = await res.json();
+      setProductos(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Error desconocido");
+    } finally {
+      setCargando(false);
+    }
+  }, []);
+
+  // Cargar productos automáticamente al montar el hook
+  useEffect(() => {
+    cargarProductos();
+  }, [cargarProductos]);
+
+  const agregarProducto = useCallback(async (productoData: Omit<Producto, 'id'>) => {
+    try {
+      const res = await fetch("/api/productos", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(productoData),
+      });
+      if (!res.ok) throw new Error("Error al agregar producto");
+      const nuevo = await res.json();
+      setProductos(prev => [...prev, nuevo]);
+      return { success: true, data: nuevo };
+    } catch (err) {
+      return { success: false, error: err instanceof Error ? err.message : "Error desconocido" };
+    }
+  }, []);
+
+  const actualizarProducto = useCallback(async (id: number, productoData: Partial<Producto>) => {
+    try {
+      const res = await fetch(`/api/productos/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(productoData),
+      });
+      if (!res.ok) throw new Error("Error al actualizar producto");
+      const actualizado = await res.json();
+      setProductos(prev => prev.map(p => p.id === id ? actualizado : p));
+      return { success: true, data: actualizado };
+    } catch (err) {
+      return { success: false, error: err instanceof Error ? err.message : "Error desconocido" };
+    }
+  }, []);
+
+  const eliminarProducto = useCallback(async (id: number) => {
+    try {
+      const res = await fetch(`/api/productos/${id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error("Error al eliminar producto");
+      setProductos(prev => prev.filter(p => p.id !== id));
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: err instanceof Error ? err.message : "Error desconocido" };
+    }
+  }, []);
+
+  return {
+    productos,
+    cargando,
+    error,
+    cargarProductos,
+    agregarProducto,
+    actualizarProducto,
+    eliminarProducto,
+  };
+}
+
+// Hook personalizado para manejo de datos auxiliares
+function useDatosAuxiliares() {
+  const [categorias, setCategorias] = useState<Categoria[]>([]);
+  const [proveedores, setProveedores] = useState<Proveedor[]>([]);
+  const [cargando, setCargando] = useState(true);
+
+  useEffect(() => {
+    const cargarDatos = async () => {
+      try {
+        setCargando(true);
+        const [catRes, provRes] = await Promise.all([
+          fetch("/api/categorias"),
+          fetch("/api/proveedores")
+        ]);
+
+        const [catData, provData] = await Promise.all([
+          catRes.json(),
+          provRes.json()
+        ]);
+
+        if (catRes.ok && Array.isArray(catData)) setCategorias(catData);
+        if (provRes.ok && Array.isArray(provData)) setProveedores(provData);
+      } catch (err) {
+        console.error("Error al cargar datos auxiliares:", err);
+      } finally {
+        setCargando(false);
+      }
+    };
+
+    cargarDatos();
+  }, []);
+
+  return { categorias, proveedores, cargando };
+}
 
 export default function ProductosPage() {
-  const [productos, setProductos] = useState<Producto[]>([]);
-  const [errorCategoria, setErrorCategoria] = useState<string | null>(null);
+  const router = useRouter();
+  const { productos, cargando, error, agregarProducto, actualizarProducto, eliminarProducto } = useProductos();
+  const { categorias, proveedores } = useDatosAuxiliares();
+
+  // Estados del formulario
   const [modalAbierto, setModalAbierto] = useState(false);
   const [modoEdicion, setModoEdicion] = useState(false);
-  const [form, setForm] = useState({
-    nombre: "",
-    descripcion: "",
-    categoria: "",
-    proveedor: 0,
-    precio: "",
-    stock: "",
-    imagen: null,
-  });
-
-  const [proveedores, setProveedores] = useState<
-    { id: number; nombre: string }[]
-  >([]);
-
   const [productoActual, setProductoActual] = useState<Producto | null>(null);
   const [imagenPreview, setImagenPreview] = useState<string | null>(null);
+  const [guardando, setGuardando] = useState(false);
+
+  // Estados de filtros
   const [busqueda, setBusqueda] = useState("");
-
-  const [categorias, setCategorias] = useState<
-    { id: number; nombre: string }[]
-  >([]);
-
-  const [modalCategoria, setModalCategoria] = useState(false);
-  const [nuevaCategoria, setNuevaCategoria] = useState("");
-
-  const [modalProveedor, setModalProveedor] = useState(false);
-
   const [categoriaFiltro, setCategoriaFiltro] = useState("");
   const [precioMin, setPrecioMin] = useState("");
   const [precioMax, setPrecioMax] = useState("");
   const [stockBajo, setStockBajo] = useState(false);
-  const router = useRouter();
-  const [cargando, setCargando] = useState(true);
 
+  // Estados de modales
+  const [modalCategoria, setModalCategoria] = useState(false);
+  const [nuevaCategoria, setNuevaCategoria] = useState("");
+  const [errorCategoria, setErrorCategoria] = useState<string | null>(null);
+  const [categoriasLocales, setCategoriasLocales] = useState<Categoria[]>([]);
+
+  // Debounce para la búsqueda
+  const busquedaDebounced = useDebounce(busqueda, 300);
+
+  // Verificar autenticación
   useEffect(() => {
     const user = localStorage.getItem("usuario");
     if (!user) {
       router.replace("/login");
-      return;
     }
-    setCargando(true);
-    fetch("/api/productos")
-      .then((res) => res.json())
-      .then(setProductos)
-      .finally(() => setCargando(false));
   }, [router]);
 
-useEffect(() => {
-  fetch("/api/categorias")
-    .then(async (res) => {
-      const data = await res.json();
-      if (res.ok && Array.isArray(data)) {
-        setCategorias(data);
-      } else {
-        console.error("Error al obtener categorías:", data);
-        setCategorias([]);
-      }
-    })
-    .catch((err) => {
-      console.error("Error al cargar categorías:", err);
-      setCategorias([]);
-    });
-}, []);
-
-
-
+  // Sincronizar categorías locales con las del hook
   useEffect(() => {
-    fetch("/api/proveedores")
-      .then((res) => res.json())
-      .then((data) => {
-        if (Array.isArray(data)) {
-          setProveedores(data);
-        } else {
-          console.error("La respuesta de proveedores no es un array:", data);
-          setProveedores([]);
-        }
-      })
-      .catch((err) => {
-        console.error("Error al cargar proveedores:", err);
-        setProveedores([]);
-      });
-  }, []);
+    setCategoriasLocales(categorias);
+  }, [categorias]);
 
-  const abrirModalAgregar = () => {
+  // Memoización de productos filtrados
+  const productosFiltrados = useMemo(() => {
+    return productos.filter((prod) => {
+      const coincideBusqueda = busquedaDebounced === "" || 
+        prod.nombre.toLowerCase().includes(busquedaDebounced.toLowerCase()) ||
+        prod.categoria?.nombre.toLowerCase().includes(busquedaDebounced.toLowerCase()) ||
+        prod.proveedor?.nombre.toLowerCase().includes(busquedaDebounced.toLowerCase());
+
+      const coincideCategoria = categoriaFiltro === "todas" || categoriaFiltro === "" || prod.categoria?.nombre === categoriaFiltro;
+      const coincidePrecioMin = precioMin === "" || prod.precio >= parseFloat(precioMin);
+      const coincidePrecioMax = precioMax === "" || prod.precio <= parseFloat(precioMax);
+      const coincideStock = !stockBajo || prod.stock <= 10;
+
+      return coincideBusqueda && coincideCategoria && coincidePrecioMin && coincidePrecioMax && coincideStock;
+    });
+  }, [productos, busquedaDebounced, categoriaFiltro, precioMin, precioMax, stockBajo]);
+
+  // Funciones de manejo
+  const abrirModalAgregar = useCallback(() => {
     setProductoActual(null);
     setImagenPreview(null);
     setModoEdicion(false);
     setModalAbierto(true);
-  };
+  }, []);
 
-  const abrirModalEditar = (producto: Producto) => {
+  const abrirModalEditar = useCallback((producto: Producto) => {
     setProductoActual(producto);
     setImagenPreview(producto.imagen || null);
     setModoEdicion(true);
     setModalAbierto(true);
-  };
+  }, []);
 
-  const handleImagenChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImagenChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => setImagenPreview(reader.result as string);
       reader.readAsDataURL(file);
     }
-  };
+  }, []);
 
-const guardarProducto = async (e: React.FormEvent<HTMLFormElement>) => {
-  e.preventDefault();
-  const formData = new FormData(e.currentTarget);
+  const guardarProducto = useCallback(async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setGuardando(true);
 
-  const nombre = formData.get("nombre")?.toString().trim();
-  const descripcion = formData.get("descripcion")?.toString().trim();
-  const categoria = formData.get("categoria")?.toString();
-  const proveedor = formData.get("proveedor")?.toString();
-  const precio = formData.get("precio")?.toString();
-  const stock = formData.get("stock")?.toString();
+    try {
+      const formData = new FormData(e.currentTarget);
+      const productoData = {
+        nombre: formData.get("nombre")?.toString().trim() || "",
+        descripcion: formData.get("descripcion")?.toString().trim() || "",
+        categoriaId: parseInt(formData.get("categoria")?.toString() || "0"),
+        proveedorId: parseInt(formData.get("proveedor")?.toString() || "0"),
+        precio: parseFloat(formData.get("precio")?.toString() || "0"),
+        stock: parseInt(formData.get("stock")?.toString() || "0"),
+        imagen: imagenPreview || "",
+      };
 
-  // Validación básica
-  if (!nombre || !descripcion || !categoria || !proveedor || !precio || !stock) {
-    alert("Todos los campos son obligatorios.");
-    return;
-  }
-
-  const productoData = {
-    nombre,
-    descripcion,
-    categoriaId: parseInt(categoria),
-    proveedorId: parseInt(proveedor),
-    precio: parseFloat(precio),
-    stock: parseInt(stock),
-    imagen: imagenPreview ?? "",
-  };
-
-  try {
-    const res = await fetch(
-      modoEdicion ? `/api/productos/${productoActual?.id}` : "/api/productos",
-      {
-        method: modoEdicion ? "PUT" : "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(productoData),
+      // Validación
+      if (!productoData.nombre || !productoData.descripcion || !productoData.categoriaId || 
+          !productoData.proveedorId || productoData.precio <= 0 || productoData.stock < 0) {
+        alert("Por favor completa todos los campos correctamente.");
+        return;
       }
-    );
 
-    if (res.ok) {
-      const nuevo = await res.json();
-      setProductos((prev) =>
-        modoEdicion
-          ? prev.map((p) => (p.id === nuevo.id ? nuevo : p))
-          : [...prev, nuevo]
-      );
-      setModalAbierto(false);
-    } else {
-      const error = await res.json();
-      alert(error?.message || "Error al guardar producto");
+      const resultado = modoEdicion 
+        ? await actualizarProducto(productoActual!.id, productoData)
+        : await agregarProducto(productoData);
+
+      if (resultado.success) {
+        setModalAbierto(false);
+        // Mostrar toast de éxito (implementar sistema de toasts)
+        alert(modoEdicion ? "Producto actualizado exitosamente" : "Producto agregado exitosamente");
+      } else {
+        alert(resultado.error || "Error al guardar producto");
+      }
+    } catch (error) {
+      alert("Error inesperado al guardar producto");
+    } finally {
+      setGuardando(false);
     }
-  } catch (error) {
-    console.error("Error al guardar producto:", error);
-    alert("Ocurrió un error al guardar el producto.");
-  }
-};
+  }, [modoEdicion, productoActual, imagenPreview, agregarProducto, actualizarProducto]);
 
+  const handleEliminarProducto = useCallback(async (id: number, nombre: string) => {
+    if (!confirm(`¿Estás seguro de eliminar "${nombre}"?`)) return;
 
-  const eliminarProducto = async (id: number) => {
-    if (!confirm("¿Estás seguro de eliminar este producto?")) return;
-
-    const res = await fetch(`/api/productos/${id}`, { method: "DELETE" });
-    if (res.ok) {
-      setProductos((prev) => prev.filter((p) => p.id !== id));
+    const resultado = await eliminarProducto(id);
+    if (resultado.success) {
+      alert("Producto eliminado exitosamente");
     } else {
-      console.error("Error al eliminar producto");
+      alert(resultado.error || "Error al eliminar producto");
     }
-  };
+  }, [eliminarProducto]);
 
-  const agregarCategoria = async () => {
+  const agregarCategoria = useCallback(async () => {
     const nueva = nuevaCategoria.trim();
     if (!nueva) return;
 
     try {
+      setErrorCategoria(null);
       const res = await fetch("/api/categorias", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -231,60 +325,68 @@ const guardarProducto = async (e: React.FormEvent<HTMLFormElement>) => {
 
       if (res.ok) {
         const nuevaCat = await res.json();
-        setCategorias((prev) => [...prev, nuevaCat]);
+        setCategoriasLocales((prev: Categoria[]) => [...prev, nuevaCat]);
         setNuevaCategoria("");
         setModalCategoria(false);
+        alert("Categoría agregada exitosamente");
       } else {
         const data = await res.json();
         setErrorCategoria(data.error || "No se pudo agregar la categoría.");
       }
     } catch (error) {
-      console.error("Error al agregar categoría", error);
       setErrorCategoria("Ocurrió un error inesperado al agregar la categoría.");
     }
-  };
+  }, [nuevaCategoria]);
 
-  const productosFiltrados = productos.filter((prod) => {
-    const coincideBusqueda =
-      prod.nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
-      prod.categoria?.nombre.toLowerCase().includes(busqueda.toLowerCase());
-
-    const coincideCategoria =
-      categoriaFiltro === "todas" || categoriaFiltro === ""
-        ? true
-        : prod.categoria?.nombre === categoriaFiltro;
-    const coincidePrecioMin = precioMin
-      ? prod.precio >= parseFloat(precioMin)
-      : true;
-    const coincidePrecioMax = precioMax
-      ? prod.precio <= parseFloat(precioMax)
-      : true;
-    const coincideStock = stockBajo ? prod.stock <= 10 : true;
-
-    return (
-      coincideBusqueda &&
-      coincideCategoria &&
-      coincidePrecioMin &&
-      coincidePrecioMax &&
-      coincideStock
-    );
-  });
+  const limpiarFiltros = useCallback(() => {
+    setBusqueda("");
+    setCategoriaFiltro("todas");
+    setPrecioMin("");
+    setPrecioMax("");
+    setStockBajo(false);
+  }, []);
 
   // Spinner de carga
-  if (cargando) return (
-    <div className="flex items-center justify-center min-h-screen">
-      <svg className="animate-spin h-20 w-20 text-blue-500" viewBox="0 0 24 24">
-        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
-      </svg>
-    </div>
-  );
+  if (cargando) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="flex flex-col items-center gap-4">
+          <svg className="animate-spin h-20 w-20 text-blue-500" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+          </svg>
+          <span className="text-blue-600 font-medium">Cargando productos...</span>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <AlertTriangle className="h-16 w-16 text-red-500 mx-auto mb-4" />
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">Error al cargar productos</h3>
+          <p className="text-gray-600 mb-4">{error}</p>
+          <Button onClick={() => window.location.reload()} className="bg-blue-600 hover:bg-blue-700">
+            Reintentar
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6">
+      {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
         <h2 className="text-3xl font-bold text-gray-800 flex items-center gap-2">
-          <Package className="text-blue-500" size={32} /> Productos
+          <Package className="text-blue-500" size={32} /> 
+          Productos
+          <span className="text-sm font-normal text-gray-500 ml-2">
+            ({productosFiltrados.length} de {productos.length})
+          </span>
         </h2>
         <Button
           onClick={abrirModalAgregar}
@@ -294,56 +396,80 @@ const guardarProducto = async (e: React.FormEvent<HTMLFormElement>) => {
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <Input
-          placeholder="Buscar por nombre o categoría"
-          value={busqueda}
-          onChange={(e) => setBusqueda(e.target.value)}
-          className="rounded-lg border-blue-200 focus:border-blue-400 focus:ring-blue-300"
-        />
-        <Select onValueChange={setCategoriaFiltro} value={categoriaFiltro}>
-          <SelectTrigger className="rounded-lg border-blue-200 focus:border-blue-400 focus:ring-blue-300">
-            <SelectValue placeholder="Filtrar por categoría" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="todas">Todas</SelectItem>
-            {categorias.map((cat) => (
-              <SelectItem key={cat.id} value={cat.nombre}>
-                {cat.nombre}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Input
-          type="number"
-          placeholder="Precio mínimo"
-          value={precioMin}
-          onChange={(e) => setPrecioMin(e.target.value)}
-          className="rounded-lg border-blue-200 focus:border-blue-400 focus:ring-blue-300"
-        />
-        <Input
-          type="number"
-          placeholder="Precio máximo"
-          value={precioMax}
-          onChange={(e) => setPrecioMax(e.target.value)}
-          className="rounded-lg border-blue-200 focus:border-blue-400 focus:ring-blue-300"
-        />
+      {/* Filtros */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-6">
+        <div className="flex items-center gap-2 mb-4">
+          <Filter className="text-blue-500" size={20} />
+          <h3 className="font-semibold text-gray-700">Filtros</h3>
+          {(busqueda || categoriaFiltro || precioMin || precioMax || stockBajo) && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={limpiarFiltros}
+              className="ml-auto text-gray-500 hover:text-gray-700"
+            >
+              <X size={16} /> Limpiar
+            </Button>
+          )}
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
+            <Input
+              placeholder="Buscar productos..."
+              value={busqueda}
+              onChange={(e) => setBusqueda(e.target.value)}
+              className="pl-10 rounded-lg border-blue-200 focus:border-blue-400 focus:ring-blue-300"
+            />
+          </div>
+          
+          <Select onValueChange={setCategoriaFiltro} value={categoriaFiltro}>
+            <SelectTrigger className="rounded-lg border-blue-200 focus:border-blue-400 focus:ring-blue-300">
+              <SelectValue placeholder="Todas las categorías" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todas">Todas las categorías</SelectItem>
+              {categoriasLocales.map((cat) => (
+                <SelectItem key={cat.id} value={cat.nombre}>
+                  {cat.nombre}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          
+          <Input
+            type="number"
+            placeholder="Precio mínimo"
+            value={precioMin}
+            onChange={(e) => setPrecioMin(e.target.value)}
+            className="rounded-lg border-blue-200 focus:border-blue-400 focus:ring-blue-300"
+          />
+          
+          <Input
+            type="number"
+            placeholder="Precio máximo"
+            value={precioMax}
+            onChange={(e) => setPrecioMax(e.target.value)}
+            className="rounded-lg border-blue-200 focus:border-blue-400 focus:ring-blue-300"
+          />
+        </div>
+
+        <div className="flex items-center mt-4 gap-2">
+          <input
+            type="checkbox"
+            id="stockBajo"
+            checked={stockBajo}
+            onChange={() => setStockBajo(!stockBajo)}
+            className="accent-blue-500"
+          />
+          <label htmlFor="stockBajo" className="text-sm text-gray-700">
+            Mostrar solo productos con stock bajo (≤ 10)
+          </label>
+        </div>
       </div>
 
-      <div className="flex items-center mb-4 gap-2">
-        <input
-          type="checkbox"
-          id="stockBajo"
-          checked={stockBajo}
-          onChange={() => setStockBajo(!stockBajo)}
-          className="accent-blue-500"
-        />
-        <label htmlFor="stockBajo" className="text-sm text-gray-700">
-          Mostrar solo productos con stock bajo (≤ 10)
-        </label>
-      </div>
-
-      {/* Grid de tarjetas en móvil/tablet, tabla en desktop */}
+      {/* Grid de tarjetas en móvil/tablet */}
       <div className="block lg:hidden">
         <AnimatePresence>
           {productosFiltrados.length === 0 ? (
@@ -355,6 +481,9 @@ const guardarProducto = async (e: React.FormEvent<HTMLFormElement>) => {
             >
               <Package size={48} className="mb-2" />
               <span className="text-lg font-semibold">No hay productos para mostrar</span>
+              <span className="text-sm text-gray-500 mt-1">
+                {productos.length > 0 ? "Intenta ajustar los filtros" : "Agrega tu primer producto"}
+              </span>
             </motion.div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
@@ -372,6 +501,7 @@ const guardarProducto = async (e: React.FormEvent<HTMLFormElement>) => {
                         src={prod.imagen}
                         alt={prod.nombre}
                         className="w-16 h-16 object-cover rounded-md border"
+                        loading="lazy"
                       />
                     ) : (
                       <div className="w-16 h-16 bg-gray-200 rounded-md flex items-center justify-center">
@@ -403,8 +533,8 @@ const guardarProducto = async (e: React.FormEvent<HTMLFormElement>) => {
                     </div>
                   </div>
                   <div className="flex flex-col gap-1 mt-2">
-                    <span className="text-gray-700 text-sm">{prod.descripcion}</span>
-                    <span className="text-blue-700 font-bold">C$ {prod.precio}</span>
+                    <span className="text-gray-700 text-sm line-clamp-2">{prod.descripcion}</span>
+                    <span className="text-blue-700 font-bold">C$ {prod.precio.toFixed(2)}</span>
                     <span className="text-xs text-gray-500">Stock: {prod.stock}</span>
                   </div>
                   <div className="flex gap-2 mt-2">
@@ -421,7 +551,7 @@ const guardarProducto = async (e: React.FormEvent<HTMLFormElement>) => {
                       variant="outline"
                       size="icon"
                       className="hover:bg-red-100 text-red-500"
-                      onClick={() => eliminarProducto(prod.id)}
+                      onClick={() => handleEliminarProducto(prod.id, prod.nombre)}
                       title="Eliminar"
                     >
                       <Trash2 size={16} />
@@ -453,7 +583,10 @@ const guardarProducto = async (e: React.FormEvent<HTMLFormElement>) => {
               <tr>
                 <td colSpan={7} className="text-center py-8 text-blue-500">
                   <Package size={32} className="mx-auto mb-2" />
-                  No hay productos para mostrar
+                  <div>No hay productos para mostrar</div>
+                  <div className="text-sm text-gray-500 mt-1">
+                    {productos.length > 0 ? "Intenta ajustar los filtros" : "Agrega tu primer producto"}
+                  </div>
                 </td>
               </tr>
             ) : (
@@ -465,6 +598,7 @@ const guardarProducto = async (e: React.FormEvent<HTMLFormElement>) => {
                         src={prod.imagen}
                         alt={prod.nombre}
                         className="w-16 h-16 object-cover rounded-md border"
+                        loading="lazy"
                       />
                     ) : (
                       <div className="w-16 h-16 bg-gray-200 rounded-md flex items-center justify-center">
@@ -475,7 +609,7 @@ const guardarProducto = async (e: React.FormEvent<HTMLFormElement>) => {
                   <td className="px-6 py-4 font-medium">{prod.nombre}</td>
                   <td className="px-6 py-4">{prod.categoria?.nombre || "Sin categoría"}</td>
                   <td className="px-6 py-4">{prod.proveedor?.nombre || "Sin proveedor"}</td>
-                  <td className="px-6 py-4">C${prod.precio}</td>
+                  <td className="px-6 py-4">C${prod.precio.toFixed(2)}</td>
                   <td className="px-6 py-4">
                     {prod.stock <= 0 ? (
                       <span className="px-2 py-0.5 rounded-full bg-red-100 text-red-600 text-xs font-semibold flex items-center gap-1">
@@ -506,7 +640,7 @@ const guardarProducto = async (e: React.FormEvent<HTMLFormElement>) => {
                         variant="outline"
                         size="icon"
                         className="hover:bg-red-100 text-red-500"
-                        onClick={() => eliminarProducto(prod.id)}
+                        onClick={() => handleEliminarProducto(prod.id, prod.nombre)}
                         title="Eliminar"
                       >
                         <Trash2 size={16} />
@@ -520,7 +654,7 @@ const guardarProducto = async (e: React.FormEvent<HTMLFormElement>) => {
         </table>
       </div>
 
-      {/* Modal */}
+      {/* Modal de producto */}
       <Dialog open={modalAbierto} onOpenChange={setModalAbierto}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
@@ -530,30 +664,33 @@ const guardarProducto = async (e: React.FormEvent<HTMLFormElement>) => {
           </DialogHeader>
           <form className="space-y-4" onSubmit={guardarProducto}>
             <div>
-              <Label htmlFor="nombre">Nombre</Label>
+              <Label htmlFor="nombre">Nombre *</Label>
               <Input
                 id="nombre"
                 name="nombre"
                 defaultValue={productoActual?.nombre}
                 required
                 className="rounded-lg border-blue-200 focus:border-blue-400 focus:ring-blue-300"
+                placeholder="Nombre del producto"
               />
             </div>
 
             <div>
-              <Label htmlFor="descripcion">Descripción</Label>
+              <Label htmlFor="descripcion">Descripción *</Label>
               <Textarea
                 id="descripcion"
                 name="descripcion"
                 defaultValue={productoActual?.descripcion}
                 required
                 className="rounded-lg border-blue-200 focus:border-blue-400 focus:ring-blue-300"
+                placeholder="Descripción del producto"
+                rows={3}
               />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="categoria">Categoría</Label>
+                <Label htmlFor="categoria">Categoría *</Label>
                 <div className="flex items-center gap-2">
                   <Select
                     name="categoria"
@@ -563,7 +700,7 @@ const guardarProducto = async (e: React.FormEvent<HTMLFormElement>) => {
                       <SelectValue placeholder="Seleccionar categoría" />
                     </SelectTrigger>
                     <SelectContent>
-                      {categorias.map((cat) => (
+                      {categoriasLocales.map((cat) => (
                         <SelectItem key={cat.id} value={cat.id.toString()}>
                           {cat.nombre}
                         </SelectItem>
@@ -576,6 +713,7 @@ const guardarProducto = async (e: React.FormEvent<HTMLFormElement>) => {
                     variant="ghost"
                     size="icon"
                     onClick={() => setModalCategoria(true)}
+                    title="Agregar categoría"
                   >
                     <Plus size={18} />
                   </Button>
@@ -583,30 +721,28 @@ const guardarProducto = async (e: React.FormEvent<HTMLFormElement>) => {
               </div>
 
               <div>
-                <Label htmlFor="proveedor">Proveedor</Label>
-                <div>
-                  <Select
-                    name="proveedor"
-                    defaultValue={productoActual?.proveedorId?.toString() || ""}
-                  >
-                    <SelectTrigger className="rounded-lg border-blue-200 focus:border-blue-400 focus:ring-blue-300">
-                      <SelectValue placeholder="Seleccionar proveedor" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {proveedores.map((prov) => (
-                        <SelectItem key={prov.id} value={prov.id.toString()}>
-                          {prov.nombre}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                <Label htmlFor="proveedor">Proveedor *</Label>
+                <Select
+                  name="proveedor"
+                  defaultValue={productoActual?.proveedorId?.toString() || ""}
+                >
+                  <SelectTrigger className="rounded-lg border-blue-200 focus:border-blue-400 focus:ring-blue-300">
+                    <SelectValue placeholder="Seleccionar proveedor" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {proveedores.map((prov) => (
+                      <SelectItem key={prov.id} value={prov.id.toString()}>
+                        {prov.nombre}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="precio">Precio</Label>
+                <Label htmlFor="precio">Precio (C$) *</Label>
                 <Input
                   id="precio"
                   name="precio"
@@ -616,10 +752,11 @@ const guardarProducto = async (e: React.FormEvent<HTMLFormElement>) => {
                   defaultValue={productoActual?.precio}
                   required
                   className="rounded-lg border-blue-200 focus:border-blue-400 focus:ring-blue-300"
+                  placeholder="0.00"
                 />
               </div>
               <div>
-                <Label htmlFor="stock">Stock</Label>
+                <Label htmlFor="stock">Stock *</Label>
                 <Input
                   id="stock"
                   name="stock"
@@ -628,6 +765,7 @@ const guardarProducto = async (e: React.FormEvent<HTMLFormElement>) => {
                   defaultValue={productoActual?.stock}
                   required
                   className="rounded-lg border-blue-200 focus:border-blue-400 focus:ring-blue-300"
+                  placeholder="0"
                 />
               </div>
             </div>
@@ -651,8 +789,22 @@ const guardarProducto = async (e: React.FormEvent<HTMLFormElement>) => {
               )}
             </div>
 
-            <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-md">
-              {modoEdicion ? "Guardar cambios" : "Agregar producto"}
+            <Button 
+              type="submit" 
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-md"
+              disabled={guardando}
+            >
+              {guardando ? (
+                <div className="flex items-center gap-2">
+                  <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+                  </svg>
+                  Guardando...
+                </div>
+              ) : (
+                modoEdicion ? "Guardar cambios" : "Agregar producto"
+              )}
             </Button>
           </form>
         </DialogContent>
