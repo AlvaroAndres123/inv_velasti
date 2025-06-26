@@ -100,6 +100,10 @@ export default function MovimientosPage() {
   // Estados para categorías y proveedores
   const [categorias, setCategorias] = useState<Categoria[]>([]);
   const [proveedores, setProveedores] = useState<Proveedor[]>([]);
+  // Estados para paginación
+  const [paginaActual, setPaginaActual] = useState(1);
+  const [movimientosPorPagina, setMovimientosPorPagina] = useState(10);
+  const opcionesPorPagina = [5, 10, 20, 30, 50];
 
   // useEffect para cargar productos
   useEffect(() => {
@@ -148,6 +152,10 @@ export default function MovimientosPage() {
       localStorage.setItem('vistaMovimientos', vista);
     }
   }, [vista]);
+  // Al cambiar filtros, resetear a la primera página
+  useEffect(() => {
+    setPaginaActual(1);
+  }, [filtroTextoGeneral, filtroTipo, filtroFecha, movimientosPorPagina]);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -214,6 +222,10 @@ const movimiento = {
   const totalEntradas = movimientos.filter(m => m.tipo === 'entrada').length;
   const totalSalidas = movimientos.filter(m => m.tipo === 'salida').length;
 
+  // Calcular movimientos a mostrar según paginación
+  const totalPaginas = Math.max(1, Math.ceil(movimientosFiltrados.length / movimientosPorPagina));
+  const movimientosPaginados = movimientosFiltrados.slice((paginaActual - 1) * movimientosPorPagina, paginaActual * movimientosPorPagina);
+
   // Spinner de carga
   if (!productos.length && !movimientos.length) {
     return (
@@ -248,30 +260,48 @@ const movimiento = {
         </div>
         {/* Filtros avanzados mejorados */}
         <div className="mb-6 mt-6 bg-[#f8fafc] rounded-xl shadow-sm border border-gray-100 p-4">
-          <div className="flex flex-wrap items-center gap-2 mb-2">
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => setFiltrosAbiertos((v) => !v)}
-              className="order-1 px-2 py-1 text-xs h-8 w-8 flex items-center justify-center"
-              title={filtrosAbiertos ? 'Ocultar filtros' : 'Mostrar filtros'}
-            >
-              {filtrosAbiertos ? <svg width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg> : <Filter size={16} />}
-            </Button>
-            <h3 className="font-semibold text-gray-700 ml-2">Filtros</h3>
-            <span className="ml-2 text-xs text-gray-500">{movimientosFiltrados.length} resultado(s)</span>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => {
-                setFiltroTextoGeneral("");
-                setFiltroTipo("todos");
-                setFiltroFecha("");
-              }}
-              className="text-gray-500 hover:text-gray-700 px-2 py-1 text-xs ml-auto"
-            >
-              Limpiar
-            </Button>
+          <div className="flex flex-wrap items-center gap-2 mb-2 justify-between">
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => setFiltrosAbiertos((v) => !v)}
+                className="order-1 px-2 py-1 text-xs h-8 w-8 flex items-center justify-center"
+                title={filtrosAbiertos ? 'Ocultar filtros' : 'Mostrar filtros'}
+              >
+                {filtrosAbiertos ? <svg width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg> : <Filter size={16} />}
+              </Button>
+              <h3 className="font-semibold text-gray-700 ml-2">Filtros</h3>
+              <span className="ml-2 text-xs text-gray-500">{movimientosFiltrados.length} resultado(s)</span>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setFiltroTextoGeneral("");
+                  setFiltroTipo("todos");
+                  setFiltroFecha("");
+                }}
+                className="text-gray-500 hover:text-gray-700 px-2 py-1 text-xs ml-2"
+              >
+                Limpiar
+              </Button>
+            </div>
+            <div className="flex items-center gap-2 mt-2 sm:mt-0">
+              <label className="text-xs text-gray-500">Mostrar</label>
+              <select
+                className="rounded-md border border-blue-200 focus:border-blue-400 focus:ring-blue-300 bg-white h-8 text-sm px-2"
+                value={movimientosPorPagina}
+                onChange={e => {
+                  setMovimientosPorPagina(Number(e.target.value));
+                  setPaginaActual(1);
+                }}
+              >
+                {opcionesPorPagina.map(op => (
+                  <option key={op} value={op}>{op}</option>
+                ))}
+              </select>
+              <span className="text-xs text-gray-500">por página</span>
+            </div>
           </div>
           <AnimatePresence>
             {(filtrosAbiertos || !isMobile) && (
@@ -344,7 +374,7 @@ const movimiento = {
                   </tr>
                 </thead>
                 <tbody>
-                  {movimientosFiltrados.length === 0 ? (
+                  {movimientosPaginados.length === 0 ? (
                     <tr>
                       <td colSpan={5} className="text-center py-8 text-blue-500">
                         <Package size={32} className="mx-auto mb-2" />
@@ -355,7 +385,7 @@ const movimiento = {
                       </td>
                     </tr>
                   ) : (
-                    movimientosFiltrados.map((mov) => (
+                    movimientosPaginados.map((mov) => (
                       <tr key={mov.id} className="border-t border-gray-200 hover:bg-blue-50/40 transition">
                         <td className="px-4 py-4 border-b border-gray-100">{formatearFechaCorta(mov.fecha)}</td>
                         <td className="px-4 py-4 border-b border-gray-100 font-semibold">
@@ -396,7 +426,7 @@ const movimiento = {
             </div>
             {/* Tarjetas en móvil */}
             <div className="sm:hidden space-y-3">
-              {movimientosFiltrados.length === 0 ? (
+              {movimientosPaginados.length === 0 ? (
                 <div className="flex flex-col items-center justify-center min-h-[120px] text-blue-500 bg-white rounded-xl shadow p-6">
                   <Package size={36} className="mb-2" />
                   <span className="text-base font-semibold">No hay movimientos para mostrar</span>
@@ -405,7 +435,7 @@ const movimiento = {
                   </span>
                 </div>
               ) : (
-                movimientosFiltrados.map((mov) => (
+                movimientosPaginados.map((mov) => (
                   <div key={mov.id} className="bg-white rounded-xl shadow p-4 flex flex-col gap-2 border border-gray-100">
                     <div className="flex items-center justify-between">
                       <span className="text-xs text-gray-500 font-medium">{formatearFechaCorta(mov.fecha)}</span>
@@ -438,13 +468,37 @@ const movimiento = {
                 ))
               )}
             </div>
+            {/* Controles de paginación debajo de la lista */}
+            <div className="flex justify-center items-center gap-2 mt-8">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={paginaActual === 1}
+                onClick={() => setPaginaActual(paginaActual - 1)}
+              >Anterior</Button>
+              {Array.from({ length: totalPaginas }, (_, i) => i + 1).map(num => (
+                <Button
+                  key={num}
+                  variant={paginaActual === num ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setPaginaActual(num)}
+                  className={paginaActual === num ? 'bg-blue-600 text-white' : ''}
+                >{num}</Button>
+              ))}
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={paginaActual === totalPaginas}
+                onClick={() => setPaginaActual(paginaActual + 1)}
+              >Siguiente</Button>
+            </div>
           </div>
         ) : (
           // Vista tarjetas
           <TooltipProvider delayDuration={300}>
             <div className="w-full">
               <AnimatePresence>
-                {movimientosFiltrados.length === 0 ? (
+                {movimientosPaginados.length === 0 ? (
                   <motion.div
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
@@ -459,7 +513,7 @@ const movimiento = {
                   </motion.div>
                 ) : (
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-                    {movimientosFiltrados.map((mov) => (
+                    {movimientosPaginados.map((mov) => (
                       <motion.div
                         key={mov.id}
                         initial={{ opacity: 0, y: 20 }}
@@ -854,17 +908,17 @@ const movimiento = {
           </DialogContent>
         </Dialog>
 
-        {/* FAB fuera de la tabla en desktop */}
-        <div className="fixed sm:static bottom-20 right-4 sm:bottom-auto sm:right-auto sm:ml-4 sm:mt-8 w-12 h-12 sm:w-14 sm:h-14 flex items-end z-50">
+        {/* FAB siempre fijo en la esquina inferior derecha */}
+        <div className="fixed bottom-6 right-6 z-50 w-14 h-14 flex items-end">
           <Button
             size="icon"
-            className="bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg w-12 h-12 sm:w-14 sm:h-14 flex items-center justify-center text-3xl transition-transform hover:scale-110"
+            className="bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg w-14 h-14 flex items-center justify-center text-3xl transition-transform hover:scale-110"
             onClick={() => setModalAbierto(true)}
             title="Registrar movimiento"
             aria-label="Registrar movimiento"
             style={{ boxShadow: '0 4px 24px 0 rgba(33,150,243,0.18)' }}
           >
-            <Plus size={28} className="sm:size-32" />
+            <Plus size={32} />
           </Button>
         </div>
       </div>
