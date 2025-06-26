@@ -23,7 +23,7 @@ import {
   Cell,
   Label,
 } from "recharts";
-import { TrendingUp } from "lucide-react";
+import { TrendingUp, Package, AlertCircle, ShoppingCart, DollarSign, Star } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Card,
@@ -323,61 +323,67 @@ export default function Home() {
       {/* Solo mostrar tarjetas y gráficos si hay datos filtrados */}
       {(!filtroAplicado || movimientosFiltrados.length > 0) && (
         <>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 mb-10">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8 mb-12">
             <InfoCard
               title="Total de productos"
               value={totalProductos.toString()}
-              color="text-blue-600"
+              color="text-blue-400"
+              icon={<Package size={36} className="text-blue-300" />}
             />
             <InfoCard
               title="Stock bajo"
               value={productosStockBajo.length.toString()}
-              color="text-red-500"
+              color="text-red-400"
+              icon={<AlertCircle size={36} className="text-red-300" />}
               onClick={() => setModalStockBajoAbierto(true)}
             />
             <InfoCard
               title="Última entrada"
               value={ultimaEntradaFormateada}
-              color="text-green-600"
+              color="text-green-400"
+              icon={<ShoppingCart size={36} className="text-green-300" />}
             />
             <InfoCard
               title="Ventas del día"
               value={`C$ ${ventasHoy.toLocaleString()}`}
-              color="text-purple-600"
+              color="text-purple-400"
+              icon={<DollarSign size={36} className="text-purple-300" />}
             />
             <InfoCard
               title="Ingresos del mes"
               value={`C$ ${ingresosMes.toLocaleString()}`}
-              color="text-emerald-600"
+              color="text-emerald-400"
+              icon={<TrendingUp size={36} className="text-emerald-300" />}
             />
             <InfoCard
               title="Productos más vendidos"
               value={productosMasVendidos.map((p) => p.name).join(", ")}
-              color="text-orange-500 text-sm"
+              color="text-orange-400 text-lg"
+              icon={<Star size={36} className="text-orange-300" />}
             />
           </div>
 
-          <h3 className="text-lg md:text-xl font-semibold mb-4 text-center md:text-left">
+          <h3 className="text-lg md:text-xl font-semibold mb-4 text-blue-900 dark:text-blue-200 text-center md:text-left tracking-wide">
             Ventas por Mes
           </h3>
-          <div className="bg-white p-4 rounded-xl shadow-md w-full h-[250px] sm:h-[300px] mb-10">
+          <div className="bg-white/80 dark:bg-black/60 border border-blue-200 dark:border-blue-900 p-4 rounded-2xl shadow-xl w-full h-[250px] sm:h-[300px] mb-12 backdrop-blur-md">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={ventasMensuales}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="mes" />
-                <YAxis />
-                <Tooltip />
-                <Bar dataKey="ventas" fill="#3b82f6" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#c7d2fe" />
+                <XAxis dataKey="mes" stroke="#1e3a8a" />
+                <YAxis stroke="#1e3a8a" />
+                <Tooltip contentStyle={{ background: '#e0e7ff', borderRadius: 8, color: '#1e3a8a' }} />
+                <Bar dataKey="ventas" fill="#3b82f6" radius={[8, 8, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
 
-          <h3 className="text-lg md:text-xl font-semibold mb-4 text-center md:text-left">
-            Top 5 productos más vendidos
+          <h3 className="text-lg md:text-xl font-semibold mb-4 text-blue-900 dark:text-blue-200 text-center md:text-left tracking-wide">
+            Top 3 productos más vendidos
           </h3>
-          <Card className="mb-10">
+          <Card className="mb-12 bg-white/80 dark:bg-black/60 border border-blue-200 dark:border-blue-900 rounded-2xl shadow-xl backdrop-blur-md">
             <CardHeader className="items-center pb-0">
-              <CardTitle>Distribución por producto</CardTitle>
+              <CardTitle className="text-blue-900 dark:text-blue-200">Distribución por producto</CardTitle>
               <CardDescription>Últimos 6 meses</CardDescription>
             </CardHeader>
             <CardContent className="pb-0">
@@ -399,7 +405,7 @@ export default function Home() {
                     outerRadius={110}
                     label={false}
                     labelLine={false}
-                    fill="#8884d8"
+                    fill="#3b82f6"
                   >
                     {productosMasVendidos.map((entry, index) => (
                       <Cell
@@ -444,7 +450,7 @@ export default function Home() {
               </div>
             </CardContent>
             <CardFooter className="flex-col gap-2 text-sm">
-              <div className="flex items-center gap-2 font-medium leading-none">
+              <div className="flex items-center gap-2 font-medium leading-none text-blue-900 dark:text-blue-200">
                 En aumento un 5.2% este mes <TrendingUp className="h-4 w-4" />
               </div>
               <div className="leading-none text-muted-foreground">
@@ -453,19 +459,19 @@ export default function Home() {
             </CardFooter>
           </Card>
 
-          <h3 className="text-lg md:text-xl font-semibold mb-4 text-center md:text-left">
+          <h3 className="text-lg md:text-xl font-semibold mb-4 text-blue-900 dark:text-blue-200 text-center md:text-left tracking-wide">
             Entradas vs Salidas por Mes
           </h3>
-          <div className="bg-white p-4 rounded-xl shadow-md w-full h-[250px] sm:h-[300px] mb-10">
+          <div className="bg-white/80 dark:bg-black/60 border border-blue-200 dark:border-blue-900 p-4 rounded-2xl shadow-xl w-full h-[250px] sm:h-[300px] mb-12 backdrop-blur-md">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={resumenMovimientos}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="mes" />
-                <YAxis />
-                <Tooltip />
+                <CartesianGrid strokeDasharray="3 3" stroke="#c7d2fe" />
+                <XAxis dataKey="mes" stroke="#1e3a8a" />
+                <YAxis stroke="#1e3a8a" />
+                <Tooltip contentStyle={{ background: '#e0e7ff', borderRadius: 8, color: '#1e3a8a' }} />
                 <Legend />
-                <Bar dataKey="entradas" fill="#10b981" name="Entradas" />
-                <Bar dataKey="salidas" fill="#ef4444" name="Salidas" />
+                <Bar dataKey="entradas" fill="#10b981" name="Entradas" radius={[8, 8, 0, 0]} />
+                <Bar dataKey="salidas" fill="#ef4444" name="Salidas" radius={[8, 8, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -510,23 +516,28 @@ function InfoCard({
   title,
   value,
   color,
+  icon,
   onClick,
 }: {
   title: string;
   value: string;
   color: string;
+  icon: React.ReactNode;
   onClick?: () => void;
 }) {
   return (
     <motion.div
-      className="bg-white shadow-md rounded-xl p-4 md:p-6 hover:shadow-lg transition min-w-0 cursor-pointer"
-      whileHover={{ scale: 1.02 }}
+      className="relative bg-white border border-blue-100 rounded-xl p-5 min-w-0 cursor-pointer shadow-sm hover:shadow-md transition-shadow duration-200 group overflow-hidden hover:bg-blue-50/40"
+      whileHover={{ scale: 1.015 }}
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
       onClick={onClick}
     >
-      <h3 className="text-sm md:text-base font-semibold mb-2 text-gray-600 break-words whitespace-normal">
+      <div className="absolute right-4 top-4">
+        {icon}
+      </div>
+      <h3 className="text-xs md:text-sm font-semibold mb-2 text-blue-900 tracking-wide">
         {title}
       </h3>
       <p
