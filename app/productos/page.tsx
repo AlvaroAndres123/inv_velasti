@@ -254,6 +254,11 @@ export default function ProductosPage() {
   // Estado para filtro de destacados
   const [soloDestacados, setSoloDestacados] = useState(false);
 
+  // Estado para paginación
+  const [paginaActual, setPaginaActual] = useState(1);
+  const [productosPorPagina, setProductosPorPagina] = useState(12);
+  const opcionesPorPagina = [8, 12, 16, 24, 32];
+
   // Memoización de productos filtrados y ordenados
   const productosFiltrados = useMemo(() => {
     let filtrados = productos.filter((prod) => {
@@ -292,6 +297,10 @@ export default function ProductosPage() {
     });
     return filtrados;
   }, [productos, busqueda, nombreExacto, categoriaFiltro, proveedorFiltro, stockFiltro, precioMin, precioMax, orden, asc, soloDestacados]);
+
+  // Calcular productos a mostrar según paginación
+  const totalPaginas = Math.max(1, Math.ceil(productosFiltrados.length / productosPorPagina));
+  const productosPaginados = productosFiltrados.slice((paginaActual - 1) * productosPorPagina, paginaActual * productosPorPagina);
 
   // Funciones de manejo
   const abrirModalAgregar = useCallback(() => {
@@ -443,6 +452,11 @@ export default function ProductosPage() {
     }
   };
 
+  // Al cambiar filtros, resetear a la primera página
+  useEffect(() => {
+    setPaginaActual(1);
+  }, [busqueda, categoriaFiltro, proveedorFiltro, stockFiltro, nombreExacto, precioMin, precioMax, orden, asc, soloDestacados, productosPorPagina]);
+
   // Spinner de carga
   if (cargando) {
     return (
@@ -533,6 +547,21 @@ export default function ProductosPage() {
               fill={soloDestacados ? '#fde047' : 'none'}
             />
           </button>
+          {/* Selector de productos por página */}
+          <label className="ml-4 text-xs text-gray-500">Mostrar</label>
+          <select
+            className="rounded-md border border-blue-200 focus:border-blue-400 focus:ring-blue-300 bg-white h-8 text-sm px-2"
+            value={productosPorPagina}
+            onChange={e => {
+              setProductosPorPagina(Number(e.target.value));
+              setPaginaActual(1);
+            }}
+          >
+            {opcionesPorPagina.map(op => (
+              <option key={op} value={op}>{op}</option>
+            ))}
+          </select>
+          <span className="text-xs text-gray-500">por página</span>
           <Button
             variant="ghost"
             size="sm"
@@ -638,9 +667,9 @@ export default function ProductosPage() {
             {/* Filtro de orden */}
             <div className="w-full">
               <label className="text-xs text-gray-500">Ordenar por</label>
-              <div className="flex gap-2 mt-1 items-center relative">
+              <div className="flex gap-2 mt-1 items-center">
                 <select
-                  className="rounded-md border border-blue-200 focus:border-blue-400 focus:ring-blue-300 bg-white h-11 text-base w-full appearance-none font-['Adam',_sans-serif] text-blue-900 pr-8 pl-4"
+                  className="rounded-md border border-blue-200 focus:border-blue-400 focus:ring-blue-300 bg-white h-11 text-base w-full font-['Adam',_sans-serif] text-blue-900 pr-8 pl-4"
                   value={orden}
                   onChange={e => setOrden(e.target.value as any)}
                 >
@@ -648,10 +677,6 @@ export default function ProductosPage() {
                   <option value="precio">Precio</option>
                   <option value="stock">Stock</option>
                 </select>
-                {/* Flecha personalizada */}
-                <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-blue-400">
-                  <svg width="18" height="18" viewBox="0 0 20 20" fill="none"><path d="M6 8l4 4 4-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                </span>
                 <Button type="button" variant="outline" size="icon" onClick={() => setAsc(a => !a)} title={asc ? 'Ascendente' : 'Descendente'}>
                   {asc ? <svg width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M7 14l5-5 5 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg> : <svg width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
                 </Button>
@@ -681,7 +706,7 @@ export default function ProductosPage() {
                 </motion.div>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-                  {productosFiltrados.map((prod) => (
+                  {productosPaginados.map((prod) => (
                     <motion.div
                       key={prod.id}
                       initial={{ opacity: 0, y: 20 }}
@@ -830,7 +855,7 @@ export default function ProductosPage() {
                   </td>
                 </tr>
               ) : (
-                productosFiltrados.map((prod) => (
+                productosPaginados.map((prod) => (
                   <tr key={prod.id} className="border-t hover:bg-blue-50/40 transition">
                     <td className="px-6 py-4">
                       {prod.imagen ? (
@@ -909,6 +934,31 @@ export default function ProductosPage() {
           </table>
         </div>
       )}
+
+      {/* Controles de paginación debajo de la lista */}
+      <div className="flex justify-center items-center gap-2 mt-8">
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={paginaActual === 1}
+          onClick={() => setPaginaActual(paginaActual - 1)}
+        >Anterior</Button>
+        {Array.from({ length: totalPaginas }, (_, i) => i + 1).map(num => (
+          <Button
+            key={num}
+            variant={paginaActual === num ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setPaginaActual(num)}
+            className={paginaActual === num ? 'bg-blue-600 text-white' : ''}
+          >{num}</Button>
+        ))}
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={paginaActual === totalPaginas}
+          onClick={() => setPaginaActual(paginaActual + 1)}
+        >Siguiente</Button>
+      </div>
 
       {/* Modal de producto */}
       <Dialog open={modalAbierto} onOpenChange={setModalAbierto}>
