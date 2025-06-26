@@ -23,6 +23,7 @@ import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { useToast, ToastContainer } from "@/components/ui/toast";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 
 interface Producto {
   id: number;
@@ -530,99 +531,133 @@ export default function ProductosPage() {
 
       {/* Grid de tarjetas o tabla según la vista elegida */}
       {vista === 'tarjetas' ? (
-        <div className="w-full">
-          <AnimatePresence>
-            {productosFiltrados.length === 0 ? (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="flex flex-col items-center justify-center min-h-[200px] text-blue-500"
-              >
-                <Package size={48} className="mb-2" />
-                <span className="text-lg font-semibold">No hay productos para mostrar</span>
-                <span className="text-sm text-gray-500 mt-1">
-                  {productos.length > 0 ? "Intenta ajustar los filtros" : "Agrega tu primer producto"}
-                </span>
-              </motion.div>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                {productosFiltrados.map((prod) => (
-                  <motion.div
-                    key={prod.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: 20 }}
-                    className="bg-white rounded-xl shadow-md p-4 flex flex-col gap-2 border border-blue-50 hover:shadow-lg transition group"
-                  >
-                    <div className="flex items-center gap-3">
-                      {prod.imagen ? (
-                        <img
-                          src={prod.imagen}
-                          alt={prod.nombre}
-                          className="w-16 h-16 object-cover rounded-md border"
-                          loading="lazy"
-                        />
-                      ) : (
-                        <div className="w-16 h-16 bg-gray-200 rounded-md flex items-center justify-center">
-                          <Package className="text-gray-400" size={28} />
+        <TooltipProvider delayDuration={300}>
+          <div className="w-full">
+            <AnimatePresence>
+              {productosFiltrados.length === 0 ? (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="flex flex-col items-center justify-center min-h-[200px] text-blue-500"
+                >
+                  <Package size={48} className="mb-2" />
+                  <span className="text-lg font-semibold">No hay productos para mostrar</span>
+                  <span className="text-sm text-gray-500 mt-1">
+                    {productos.length > 0 ? "Intenta ajustar los filtros" : "Agrega tu primer producto"}
+                  </span>
+                </motion.div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+                  {productosFiltrados.map((prod) => (
+                    <motion.div
+                      key={prod.id}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 20 }}
+                      className="relative bg-white rounded-2xl shadow-lg p-6 flex flex-col h-full border border-blue-50 hover:shadow-xl transition group"
+                    >
+                      {/* Etiqueta de stock pegada */}
+                      <div className="absolute top-3 -right-4 z-10 shadow-md rounded-l-full px-3 py-1 text-xs font-semibold flex items-center gap-1
+                        bg-green-100 text-green-700"
+                        style={{ minWidth: '90px' }}
+                      >
+                        <BadgeCheck size={12} /> Stock OK
+                      </div>
+                      {/* Si stock bajo o agotado, cambia color y texto */}
+                      {prod.stock <= 10 && prod.stock > 0 && (
+                        <div className="absolute top-3 -right-4 z-10 shadow-md rounded-l-full px-3 py-1 text-xs font-semibold flex items-center gap-1
+                          bg-yellow-100 text-yellow-700"
+                          style={{ minWidth: '90px' }}
+                        >
+                          <AlertTriangle size={12} /> Stock bajo
                         </div>
                       )}
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                          <span className="font-bold text-blue-900 text-lg">
-                            {prod.nombre}
-                          </span>
-                          {prod.stock <= 0 ? (
-                            <span className="ml-2 px-2 py-0.5 rounded-full bg-red-100 text-red-600 text-xs font-semibold flex items-center gap-1">
-                              <AlertTriangle size={14} /> Agotado
-                            </span>
-                          ) : prod.stock <= 10 ? (
-                            <span className="ml-2 px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-700 text-xs font-semibold flex items-center gap-1">
-                              <AlertTriangle size={14} /> Stock bajo
-                            </span>
-                          ) : (
-                            <span className="ml-2 px-2 py-0.5 rounded-full bg-green-100 text-green-700 text-xs font-semibold flex items-center gap-1">
-                              <BadgeCheck size={14} /> Stock OK
-                            </span>
-                          )}
+                      {prod.stock <= 0 && (
+                        <div className="absolute top-3 -right-4 z-10 shadow-md rounded-l-full px-3 py-1 text-xs font-semibold flex items-center gap-1
+                          bg-red-100 text-red-600"
+                          style={{ minWidth: '90px' }}
+                        >
+                          <AlertTriangle size={12} /> Agotado
                         </div>
-                        <div className="text-xs text-gray-500">
-                          {prod.categoria?.nombre || "Sin categoría"} • {prod.proveedor?.nombre || "Sin proveedor"}
+                      )}
+                      <div className="flex items-start gap-3 mb-2 mt-8">
+                        {prod.imagen ? (
+                          <img
+                            src={prod.imagen}
+                            alt={prod.nombre}
+                            className="w-16 h-16 aspect-square object-cover rounded-md border"
+                            loading="lazy"
+                          />
+                        ) : (
+                          <div className="w-16 h-16 aspect-square bg-gray-200 rounded-md flex items-center justify-center">
+                            <Package className="text-gray-400" size={28} />
+                          </div>
+                        )}
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="font-bold text-blue-900 text-lg line-clamp-2 max-w-[200px] cursor-help">
+                              {prod.nombre}
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent>{prod.nombre}</TooltipContent>
+                        </Tooltip>
+                      </div>
+                      <div className="flex items-center gap-2 text-xs text-gray-500 mb-2">
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="truncate line-clamp-1 max-w-[140px] cursor-help">
+                              {prod.categoria?.nombre || "Sin categoría"}
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent>{prod.categoria?.nombre || "Sin categoría"}</TooltipContent>
+                        </Tooltip>
+                        <span className="mx-[1px] text-gray-400">·</span>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="truncate line-clamp-1 max-w-[140px] cursor-help">
+                              {prod.proveedor?.nombre || "Sin proveedor"}
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent>{prod.proveedor?.nombre || "Sin proveedor"}</TooltipContent>
+                        </Tooltip>
+                      </div>
+                      <div className="text-gray-700 text-sm mb-4 min-h-[40px]">
+                        {prod.descripcion}
+                      </div>
+                      <div className="flex flex-col flex-1 justify-end">
+                        <span className="text-blue-700 font-bold text-xl mb-2">C$ {prod.precio.toFixed(2)}</span>
+                        <div className="flex items-center justify-between mt-auto">
+                          <span className="text-xs text-gray-500">Stock: {prod.stock}</span>
+                          <div className="flex gap-2">
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              onClick={() => abrirModalEditar(prod)}
+                              className="hover:bg-blue-100 p-2"
+                              title="Editar"
+                            >
+                              <Pencil size={15} />
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              className="hover:bg-red-100 text-red-500 p-2"
+                              onClick={() => pedirConfirmacionEliminar(prod)}
+                              title="Eliminar"
+                            >
+                              <Trash2 size={15} />
+                            </Button>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                    <div className="flex flex-col gap-1 mt-2">
-                      <span className="text-gray-700 text-sm line-clamp-2">{prod.descripcion}</span>
-                      <span className="text-blue-700 font-bold">C$ {prod.precio.toFixed(2)}</span>
-                      <span className="text-xs text-gray-500">Stock: {prod.stock}</span>
-                    </div>
-                    <div className="flex gap-2 mt-2">
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        onClick={() => abrirModalEditar(prod)}
-                        className="hover:bg-blue-100"
-                        title="Editar"
-                      >
-                        <Pencil size={16} />
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="hover:bg-red-100 text-red-500"
-                        onClick={() => pedirConfirmacionEliminar(prod)}
-                        title="Eliminar"
-                      >
-                        <Trash2 size={16} />
-                      </Button>
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
-            )}
-          </AnimatePresence>
-        </div>
+                    </motion.div>
+                  ))}
+                </div>
+              )}
+            </AnimatePresence>
+          </div>
+        </TooltipProvider>
       ) : (
         <div className="w-full overflow-x-auto rounded-xl shadow">
           <table className="min-w-full text-sm text-left text-gray-700 bg-white">
@@ -656,11 +691,11 @@ export default function ProductosPage() {
                         <img
                           src={prod.imagen}
                           alt={prod.nombre}
-                          className="w-16 h-16 object-cover rounded-md border"
+                          className="w-16 h-16 aspect-square object-cover rounded-md border"
                           loading="lazy"
                         />
                       ) : (
-                        <div className="w-16 h-16 bg-gray-200 rounded-md flex items-center justify-center">
+                        <div className="w-16 h-16 aspect-square bg-gray-200 rounded-md flex items-center justify-center">
                           <Package className="text-gray-400" size={28} />
                         </div>
                       )}
