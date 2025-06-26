@@ -129,6 +129,16 @@ export default function MovimientosPage() {
   // Estado para modal de detalles
   const [modalDetalles, setModalDetalles] = useState(false);
   const [productoDetalle, setProductoDetalle] = useState<Producto | null>(null);
+  // 1. Estado para la fecha y hora
+  const [fechaMovimiento, setFechaMovimiento] = useState(() => {
+    const now = new Date();
+    return now.toISOString().slice(0, 10); // YYYY-MM-DD
+  });
+  const [usarHora, setUsarHora] = useState(false);
+  const [horaMovimiento, setHoraMovimiento] = useState(() => {
+    const now = new Date();
+    return now.toTimeString().slice(0, 5); // HH:mm
+  });
 
   // Motivos únicos para autocomplete
   const motivosUnicos = Array.from(new Set(movimientos.map(m => m.motivo))).filter(Boolean);
@@ -220,13 +230,22 @@ const registrarMovimiento = async () => {
     return;
   }
 
-const movimiento = {
-  tipo: tipoMovimiento,
-  cantidad: parseInt(form.cantidad),
-  motivo: form.motivo || "Sin motivo",
-  productoId: parseInt(form.productoId),
-  valor: parseFloat(form.valor),
-};
+  let fechaFinal = fechaMovimiento;
+  if (usarHora && horaMovimiento) {
+    fechaFinal = `${fechaMovimiento}T${horaMovimiento}:00`;
+  } else {
+    // Si no se usa hora específica, usar la hora actual
+    const ahora = new Date();
+    fechaFinal = `${fechaMovimiento}T${ahora.toTimeString().slice(0, 8)}`;
+  }
+  const movimiento = {
+    tipo: tipoMovimiento,
+    cantidad: parseInt(form.cantidad),
+    motivo: form.motivo || "Sin motivo",
+    productoId: parseInt(form.productoId),
+    valor: parseFloat(form.valor),
+    fecha: fechaFinal,
+  };
 
 
 
@@ -1131,6 +1150,35 @@ const movimiento = {
                   className="rounded-lg border-blue-200 focus:border-blue-400 focus:ring-blue-300"
                   rows={2}
                 />
+              </div>
+              <div className="flex flex-col gap-2">
+                <label className="text-sm text-gray-700 font-medium">Fecha del movimiento</label>
+                <div className="flex gap-2 items-center">
+                  <Input
+                    type="date"
+                    value={fechaMovimiento}
+                    onChange={e => setFechaMovimiento(e.target.value)}
+                    className="w-40"
+                    max={new Date().toISOString().slice(0, 10)}
+                  />
+                  <label className="flex items-center gap-1 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={usarHora}
+                      onChange={e => setUsarHora(e.target.checked)}
+                      className="accent-blue-600"
+                    />
+                    ¿Hora específica?
+                  </label>
+                  {usarHora && (
+                    <Input
+                      type="time"
+                      value={horaMovimiento}
+                      onChange={e => setHoraMovimiento(e.target.value)}
+                      className="w-32 ml-2"
+                    />
+                  )}
+                </div>
               </div>
               <Button
                 type="submit"
