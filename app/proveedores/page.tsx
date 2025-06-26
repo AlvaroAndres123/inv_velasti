@@ -83,6 +83,16 @@ export default function ProveedoresPage() {
     return isMobile ? 'tarjetas' : 'tabla';
   });
 
+  // Estados de filtro avanzados para proveedores
+  const [filtroNombre, setFiltroNombre] = useState("");
+  const [filtroContacto, setFiltroContacto] = useState("");
+  const [filtroCorreo, setFiltroCorreo] = useState("");
+  const [filtroTelefono, setFiltroTelefono] = useState("");
+  const [filtroCiudad, setFiltroCiudad] = useState("");
+
+  // Extraer ciudades únicas si existe el campo direccion
+  const ciudadesUnicas = Array.from(new Set(proveedores.map(p => (p.direccion?.split(",")[1]?.trim() || "")).filter(Boolean)));
+
   useEffect(() => {
     const user = localStorage.getItem("usuario");
     if (!user) {
@@ -185,10 +195,17 @@ export default function ProveedoresPage() {
     }
   };
 
+  // Lógica de filtrado avanzada
+  const proveedoresFiltrados = proveedores.filter((p) => {
+    const coincideNombre = filtroNombre === "" || p.nombre.toLowerCase().includes(filtroNombre.toLowerCase());
+    const coincideContacto = filtroContacto === "" || p.contacto.toLowerCase().includes(filtroContacto.toLowerCase());
+    const coincideCorreo = filtroCorreo === "" || p.correo.toLowerCase().includes(filtroCorreo.toLowerCase());
+    const coincideTelefono = filtroTelefono === "" || p.telefono.toLowerCase().includes(filtroTelefono.toLowerCase());
+    const coincideCiudad = filtroCiudad === "" || (p.direccion?.toLowerCase().includes(filtroCiudad.toLowerCase()));
+    return coincideNombre && coincideContacto && coincideCorreo && coincideTelefono && coincideCiudad;
+  });
+
   // Calcular proveedores a mostrar según paginación
-  const proveedoresFiltrados = proveedores.filter((p) =>
-    `${p.nombre} ${p.contacto}`.toLowerCase().includes(busqueda.toLowerCase())
-  );
   const totalPaginas = Math.max(1, Math.ceil(proveedoresFiltrados.length / proveedoresPorPagina));
   const proveedoresPaginados = proveedoresFiltrados.slice((paginaActual - 1) * proveedoresPorPagina, paginaActual * proveedoresPorPagina);
 
@@ -429,11 +446,11 @@ export default function ProveedoresPage() {
             </Button>
           </div>
         </div>
-        {/* Filtros avanzados */}
+        {/* Filtros avanzados con grid responsivo y lógica igual a movimientos */}
         <div className="mb-4">
           <div className="flex flex-wrap items-center gap-2 mb-2">
-            <Table size={18} className="text-blue-500" />
-            <h3 className="font-semibold text-gray-700">Listado</h3>
+            <Filter className="text-blue-500" size={20} />
+            <h3 className="font-semibold text-gray-700">Filtros</h3>
             <span className="ml-2 text-xs text-gray-500">{proveedoresFiltrados.length} resultado(s)</span>
             <label className="ml-4 text-xs text-gray-500">Mostrar</label>
             <select
@@ -449,16 +466,6 @@ export default function ProveedoresPage() {
               ))}
             </select>
             <span className="text-xs text-gray-500">por página</span>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => { setBusqueda(""); limpiarSeleccion(); }}
-              className="text-gray-500 hover:text-gray-700 order-1"
-            >
-              <span className="flex items-center gap-1">
-                <X size={16} /> Limpiar
-              </span>
-            </Button>
             <ExportButton
               onClick={() => exportarProveedoresAExcel(
                 seleccionados.length > 0 ? proveedores.filter(p => seleccionados.includes(p.id)) : proveedoresFiltrados,
@@ -483,17 +490,95 @@ export default function ProveedoresPage() {
             >
               Exportar PDF
             </ExportButton>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setFiltroNombre("");
+                setFiltroContacto("");
+                setFiltroCorreo("");
+                setFiltroTelefono("");
+                setFiltroCiudad("");
+                limpiarSeleccion();
+              }}
+              className="ml-2 text-gray-500 hover:text-gray-700"
+            >
+              <X size={16} className="mr-1" /> Limpiar
+            </Button>
           </div>
-          <div className="relative w-full mt-2">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-blue-400 pointer-events-none">
-              <Search size={16} />
-            </span>
-            <Input
-              placeholder="Buscar por nombre o contacto"
-              value={busqueda}
-              onChange={(e) => setBusqueda(e.target.value)}
-              className="pl-10 rounded-md border border-blue-200 focus:border-blue-400 focus:ring-blue-300 bg-white h-10 sm:h-11 text-base w-full text-sm sm:text-base"
-            />
+          {/* Grid de filtros */}
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-2 md:gap-2 w-full mb-4">
+            {/* Buscar por nombre */}
+            <div className="flex flex-col relative w-full">
+              <label htmlFor="filtroNombre" className="text-sm text-gray-700 mb-1 font-medium">Nombre</label>
+              <span className="absolute left-3 top-[70%] -translate-y-1/2 text-blue-400 pointer-events-none">
+                <Search size={20} />
+              </span>
+              <input
+                id="filtroNombre"
+                placeholder="Buscar nombre"
+                value={filtroNombre}
+                onChange={e => setFiltroNombre(e.target.value)}
+                className="pl-10 rounded-md border border-blue-200 focus:border-blue-500 focus:ring-blue-300 bg-white h-11 text-base w-full"
+              />
+            </div>
+            {/* Buscar por contacto */}
+            <div className="flex flex-col relative w-full">
+              <label htmlFor="filtroContacto" className="text-sm text-gray-700 mb-1 font-medium">Contacto</label>
+              <span className="absolute left-3 top-[70%] -translate-y-1/2 text-blue-400 pointer-events-none">
+                <Search size={20} />
+              </span>
+              <input
+                id="filtroContacto"
+                placeholder="Buscar contacto"
+                value={filtroContacto}
+                onChange={e => setFiltroContacto(e.target.value)}
+                className="pl-10 rounded-md border border-blue-200 focus:border-blue-500 focus:ring-blue-300 bg-white h-11 text-base w-full"
+              />
+            </div>
+            {/* Buscar por correo */}
+            <div className="flex flex-col relative w-full">
+              <label htmlFor="filtroCorreo" className="text-sm text-gray-700 mb-1 font-medium">Correo</label>
+              <span className="absolute left-3 top-[70%] -translate-y-1/2 text-blue-400 pointer-events-none">
+                <Search size={20} />
+              </span>
+              <input
+                id="filtroCorreo"
+                placeholder="Buscar correo"
+                value={filtroCorreo}
+                onChange={e => setFiltroCorreo(e.target.value)}
+                className="pl-10 rounded-md border border-blue-200 focus:border-blue-500 focus:ring-blue-300 bg-white h-11 text-base w-full"
+              />
+            </div>
+            {/* Buscar por teléfono */}
+            <div className="flex flex-col relative w-full">
+              <label htmlFor="filtroTelefono" className="text-sm text-gray-700 mb-1 font-medium">Teléfono</label>
+              <span className="absolute left-3 top-[70%] -translate-y-1/2 text-blue-400 pointer-events-none">
+                <Search size={20} />
+              </span>
+              <input
+                id="filtroTelefono"
+                placeholder="Buscar teléfono"
+                value={filtroTelefono}
+                onChange={e => setFiltroTelefono(e.target.value)}
+                className="pl-10 rounded-md border border-blue-200 focus:border-blue-500 focus:ring-blue-300 bg-white h-11 text-base w-full"
+              />
+            </div>
+            {/* Filtrar por ciudad/ubicación si existe */}
+            <div className="flex flex-col w-full">
+              <label htmlFor="filtroCiudad" className="text-sm text-gray-700 mb-1 font-medium">Ciudad/Ubicación</label>
+              <select
+                id="filtroCiudad"
+                value={filtroCiudad}
+                onChange={e => setFiltroCiudad(e.target.value)}
+                className="rounded-md border border-blue-200 focus:border-blue-500 focus:ring-blue-300 bg-white h-11 text-base w-full"
+              >
+                <option value="">Todas</option>
+                {ciudadesUnicas.map((ciudad, i) => (
+                  <option key={i} value={ciudad}>{ciudad}</option>
+                ))}
+              </select>
+            </div>
           </div>
         </div>
         {/* Renderizado condicional según vista */}
