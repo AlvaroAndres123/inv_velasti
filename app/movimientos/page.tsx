@@ -75,6 +75,7 @@ interface Proveedor {
 }
 
 export default function MovimientosPage() {
+  const { toasts, success, error: showError, removeToast } = useToast();
   // Estados principales
   const [tipoMovimiento, setTipoMovimiento] = useState<"entrada" | "salida">("entrada");
   const [form, setForm] = useState({ productoId: "", cantidad: "", motivo: "", valor: "" });
@@ -114,6 +115,9 @@ export default function MovimientosPage() {
   const [filtroMotivo, setFiltroMotivo] = useState("");
   const [filtroCategoria, setFiltroCategoria] = useState("todas");
   const [filtroMarca, setFiltroMarca] = useState("todas");
+  // Agregar estados para el rango de fechas
+  const [filtroFechaInicio, setFiltroFechaInicio] = useState("");
+  const [filtroFechaFin, setFiltroFechaFin] = useState("");
 
   // Motivos únicos para autocomplete
   const motivosUnicos = Array.from(new Set(movimientos.map(m => m.motivo))).filter(Boolean);
@@ -201,7 +205,7 @@ const registrarMovimiento = async () => {
   // Eliminamos la verificación de usuario chico tal vez a futuro estara
 
   if (!form.productoId || !form.cantidad || !form.valor) {
-    alert("Todos los campos son obligatorios.");
+    showError("Error de validación", "Todos los campos son obligatorios.");
     return;
   }
 
@@ -227,16 +231,16 @@ const movimiento = {
     const data = await res.json();
 
     if (res.ok) {
-      console.log("Movimiento registrado:", data);
       // Actualiza la tabla o lista de movimientos
       setMovimientos((prev) => [data, ...prev]);
       setModalAbierto(false);
+      success("Movimiento registrado", "El movimiento ha sido registrado exitosamente.");
     } else {
-      alert(data.error || "Error al registrar movimiento.");
+      showError("Error al registrar", data.error || "Error al registrar movimiento.");
     }
   } catch (err) {
     console.error("Error al registrar movimiento:", err);
-    alert("Error al registrar movimiento.");
+    showError("Error inesperado", "Ocurrió un error inesperado al registrar el movimiento.");
   }
 };
 
@@ -246,7 +250,25 @@ const movimiento = {
     const coincideProducto = filtroProducto === "" || (producto?.nombre?.toLowerCase() || "").includes(filtroProducto.toLowerCase());
     const coincideMotivo = filtroMotivo === "" || mov.motivo.toLowerCase().includes(filtroMotivo.toLowerCase());
     const coincideTipo = filtroTipo === "todos" ? true : mov.tipo === filtroTipo;
-    const coincideFecha = filtroFecha ? mov.fecha === filtroFecha : true;
+    // Convertir fecha del movimiento (DD/MM/YYYY) a YYYY-MM-DD para comparar
+    function toISO(fechaStr: string) {
+      if (!fechaStr) return "";
+      const clean = fechaStr.trim();
+      // Si viene en formato DD/MM/YYYY, convertir
+      if (/^\d{2}\/\d{2}\/\d{4}$/.test(clean)) {
+        const [d, m, y] = clean.split("/");
+        return `${y}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`;
+      }
+      // Si ya viene en formato YYYY-MM-DD, devolver igual
+      return clean;
+    }
+    const movFechaISO = toISO(mov.fecha);
+    let coincideFecha = true;
+    if (filtroFechaInicio && filtroFechaFin) {
+      coincideFecha = movFechaISO >= filtroFechaInicio && movFechaISO <= filtroFechaFin;
+    } else if (filtroFecha) {
+      coincideFecha = movFechaISO === filtroFecha;
+    }
     const coincideCategoria = filtroCategoria === "todas" ? true : (producto?.categoria === filtroCategoria);
     const coincideMarca = filtroMarca === "todas" ? true : (producto?.proveedor === filtroMarca);
     return coincideProducto && coincideMotivo && coincideTipo && coincideFecha && coincideCategoria && coincideMarca;
@@ -453,6 +475,9 @@ const movimiento = {
   return (
     <div className="min-h-screen bg-[#f6f8fa] flex flex-col items-center justify-start py-4">
       <div className="w-full max-w-7xl px-4 sm:px-8 mx-auto">
+        {/* Toast Container */}
+        <ToastContainer toasts={toasts} onClose={removeToast} />
+        
         {/* Encabezado y botones de cambio de vista */}
         <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-4 mb-2 justify-between">
           <div className="flex items-center gap-2">
@@ -653,7 +678,7 @@ const movimiento = {
             {/* Fila de filtro de fecha debajo */}
             <div className="w-full flex flex-col md:flex-row gap-2 mb-4">
               <div className="flex flex-col w-full md:w-1/3">
-                <label htmlFor="filtroFecha" className="text-sm text-gray-700 mb-1 font-medium">Fecha</label>
+                <label htmlFor="filtroFecha" className="text-sm text-gray-700 mb-1 font-medium">Fecha exacta</label>
                 <div className="relative w-full">
                   <Input
                     id="filtroFecha"
@@ -666,6 +691,25 @@ const movimiento = {
                   <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
                     <svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path d="M3 8h18M8 3v2m8-2v2m-9 4v9a2 2 0 002 2h6a2 2 0 002-2V9" stroke="#64748b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
                   </span>
+                </div>
+              </div>
+              <div className="flex flex-col w-full md:w-1/3">
+                <label className="text-sm text-gray-700 mb-1 font-medium">Rango de fechas</label>
+                <div className="flex gap-2">
+                  <Input
+                    type="date"
+                    placeholder="Desde"
+                    value={filtroFechaInicio}
+                    onChange={e => setFiltroFechaInicio(e.target.value)}
+                    className="rounded-md border border-blue-200 focus:border-blue-500 focus:ring-blue-300 bg-white h-11 text-base w-full"
+                  />
+                  <Input
+                    type="date"
+                    placeholder="Hasta"
+                    value={filtroFechaFin}
+                    onChange={e => setFiltroFechaFin(e.target.value)}
+                    className="rounded-md border border-blue-200 focus:border-blue-500 focus:ring-blue-300 bg-white h-11 text-base w-full"
+                  />
                 </div>
               </div>
             </div>
