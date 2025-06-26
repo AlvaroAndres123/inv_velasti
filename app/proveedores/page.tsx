@@ -51,21 +51,46 @@ export default function ProveedoresPage() {
   // Estados para feedback
   const { toasts, success, error: showError, removeToast } = useToast();
 
-  // Estados para selección masiva
+  // Estado para selección masiva
   const [seleccionados, setSeleccionados] = useState<number[]>([]);
+  
   const toggleSeleccion = (id: number) => {
     setSeleccionados(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
   };
+  
   const toggleSeleccionTodos = () => {
-    const idsPagina = proveedoresPaginados.map(p => p.id);
-    const todosSeleccionados = idsPagina.every(id => seleccionados.includes(id));
     if (todosSeleccionados) {
-      setSeleccionados(prev => prev.filter(id => !idsPagina.includes(id)));
+      setSeleccionados(prev => prev.filter(id => !proveedoresPaginados.some((p: Proveedor) => p.id === id)));
     } else {
-      setSeleccionados(prev => [...prev, ...idsPagina.filter(id => !prev.includes(id))]);
+      setSeleccionados(prev => [...prev, ...proveedoresPaginados.filter((p: Proveedor) => !prev.includes(p.id)).map((p: Proveedor) => p.id)]);
     }
   };
+  
   const limpiarSeleccion = () => setSeleccionados([]);
+  
+  // Acción masiva - eliminar seleccionados
+  const eliminarSeleccionados = async () => {
+    if (seleccionados.length === 0) return;
+    if (!window.confirm(`¿Seguro que deseas eliminar ${seleccionados.length} proveedor(es)? Esta acción no se puede deshacer.`)) return;
+    
+    for (const id of seleccionados) {
+      try {
+        const res = await fetch(`/api/proveedores/${id}`, { method: "DELETE" });
+        if (!res.ok) throw new Error(`Error al eliminar proveedor ${id}`);
+      } catch (error) {
+        console.error(`Error eliminando proveedor ${id}:`, error);
+      }
+    }
+    
+    limpiarSeleccion();
+    // Recargar la lista de proveedores
+    const res = await fetch("/api/proveedores");
+    if (res.ok) {
+      const data = await res.json();
+      setProveedores(data);
+    }
+    success('Proveedores eliminados', 'Los proveedores seleccionados han sido eliminados.');
+  };
 
   // Estados para confirmación de eliminación
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -212,6 +237,7 @@ export default function ProveedoresPage() {
   // Calcular proveedores a mostrar según paginación
   const totalPaginas = Math.max(1, Math.ceil(proveedoresFiltrados.length / proveedoresPorPagina));
   const proveedoresPaginados = proveedoresFiltrados.slice((paginaActual - 1) * proveedoresPorPagina, paginaActual * proveedoresPorPagina);
+  const todosSeleccionados = proveedoresPaginados.length > 0 && proveedoresPaginados.every((p: Proveedor) => seleccionados.includes(p.id));
 
   useEffect(() => {
     setPaginaActual(1);
@@ -606,6 +632,18 @@ export default function ProveedoresPage() {
             </div>
           </div>
         </div>
+        {/* Indicador de selección masiva barra fija arriba */}
+        {seleccionados.length > 0 && (
+          <div className="fixed top-0 left-0 w-full z-40 bg-white border-b shadow flex flex-wrap items-center gap-4 px-6 py-3 animate-fade-in pt-14 md:pt-0">
+            <span className="font-semibold text-blue-700">{seleccionados.length} seleccionado(s)</span>
+            <Button variant="destructive" size="sm" onClick={eliminarSeleccionados}>
+              <Trash2 size={16} /> Eliminar
+            </Button>
+            <Button variant="secondary" size="sm" onClick={limpiarSeleccion}>
+              Cancelar
+            </Button>
+          </div>
+        )}
         {/* Renderizado condicional según vista */}
         {proveedoresFiltrados.length === 0 ? (
           <div className="flex flex-col items-center justify-center min-h-[180px] w-full text-blue-500 bg-white rounded-xl shadow p-6 my-8">
@@ -620,77 +658,76 @@ export default function ProveedoresPage() {
             <table className="min-w-full text-sm text-left text-gray-700 bg-white border-separate border-spacing-0">
               <thead className="bg-gray-200 text-xs uppercase text-gray-500">
                 <tr>
+                  <th className="px-6 py-4 border-b border-gray-300">
+                    <input
+                      type="checkbox"
+                      checked={todosSeleccionados}
+                      onChange={toggleSeleccionTodos}
+                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    />
+                  </th>
+                  <th className="px-6 py-4 border-b border-gray-300">ID</th>
                   <th className="px-6 py-4 border-b border-gray-300">Nombre</th>
                   <th className="px-6 py-4 border-b border-gray-300">Contacto</th>
-                  <th className="px-6 py-4 border-b border-gray-300">Teléfono</th>
                   <th className="px-6 py-4 border-b border-gray-300">Correo</th>
+                  <th className="px-6 py-4 border-b border-gray-300">Teléfono</th>
                   <th className="px-6 py-4 border-b border-gray-300">Dirección</th>
                   <th className="px-6 py-4 border-b border-gray-300">Acciones</th>
                 </tr>
               </thead>
               <tbody>
-                {proveedoresPaginados.map((prov) => (
-                  <tr key={prov.id} className="border-t border-gray-200 hover:bg-blue-50/40 transition">
-                    <td className="px-6 py-4 font-medium">
-                      <TooltipProvider delayDuration={300}>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <span className="truncate max-w-[140px] block cursor-pointer">{prov.nombre}</span>
-                          </TooltipTrigger>
-                          <TooltipContent>{prov.nombre}</TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
+                {proveedoresPaginados.map((proveedor) => (
+                  <tr key={proveedor.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 border-b border-gray-200">
+                      <input
+                        type="checkbox"
+                        checked={seleccionados.includes(proveedor.id)}
+                        onChange={() => toggleSeleccion(proveedor.id)}
+                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      />
                     </td>
-                    <td className="px-6 py-4">
-                      <TooltipProvider delayDuration={300}>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <span className="truncate max-w-[120px] block cursor-pointer">{prov.contacto}</span>
-                          </TooltipTrigger>
-                          <TooltipContent>{prov.contacto}</TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                    </td>
-                    <td className="px-6 py-4">{prov.telefono}</td>
-                    <td className="px-6 py-4">
-                      <TooltipProvider delayDuration={300}>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <span className="truncate max-w-[140px] block cursor-pointer">{prov.correo}</span>
-                          </TooltipTrigger>
-                          <TooltipContent>{prov.correo}</TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                    </td>
-                    <td className="px-6 py-4">
-                      <TooltipProvider delayDuration={300}>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <span className="truncate max-w-[140px] block cursor-pointer">{prov.direccion}</span>
-                          </TooltipTrigger>
-                          <TooltipContent>{prov.direccion}</TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                    </td>
-                    <td className="px-6 py-4">
+                    <td className="px-6 py-4 border-b border-gray-200">{proveedor.id}</td>
+                    <td className="px-6 py-4 border-b border-gray-200 font-medium">{proveedor.nombre}</td>
+                    <td className="px-6 py-4 border-b border-gray-200">{proveedor.contacto}</td>
+                    <td className="px-6 py-4 border-b border-gray-200">{proveedor.correo}</td>
+                    <td className="px-6 py-4 border-b border-gray-200">{proveedor.telefono}</td>
+                    <td className="px-6 py-4 border-b border-gray-200">{proveedor.direccion}</td>
+                    <td className="px-6 py-4 border-b border-gray-200">
                       <div className="flex gap-2">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => abrirModalEditar(prov)}
-                          title="Editar proveedor"
-                        >
-                          <Pencil size={16} />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="text-red-500"
-                          onClick={() => pedirConfirmacionEliminar(prov)}
-                          title="Eliminar proveedor"
-                        >
-                          <Trash2 size={16} />
-                        </Button>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => abrirModalEditar(proveedor)}
+                                className="text-blue-600 hover:text-blue-800"
+                              >
+                                <Pencil size={16} />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Editar proveedor</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => pedirConfirmacionEliminar(proveedor)}
+                                className="text-red-600 hover:text-red-800"
+                              >
+                                <Trash2 size={16} />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Eliminar proveedor</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
                       </div>
                     </td>
                   </tr>
@@ -703,6 +740,35 @@ export default function ProveedoresPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 my-8">
             {proveedoresPaginados.map((prov) => (
               <div key={prov.id} className="bg-white rounded-xl shadow p-6 flex flex-col gap-2 border border-gray-100">
+                {/* Checkbox de selección */}
+                <div className="flex items-center justify-between">
+                  <input
+                    type="checkbox"
+                    checked={seleccionados.includes(prov.id)}
+                    onChange={() => toggleSeleccion(prov.id)}
+                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  />
+                  <div className="flex gap-1">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => abrirModalEditar(prov)}
+                      title="Editar proveedor"
+                    >
+                      <Pencil size={16} />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="text-red-500"
+                      onClick={() => pedirConfirmacionEliminar(prov)}
+                      title="Eliminar proveedor"
+                    >
+                      <Trash2 size={16} />
+                    </Button>
+                  </div>
+                </div>
+                
                 <div className="flex items-center gap-2 mb-2">
                   <Truck className="text-blue-400" size={28} />
                   <span className="font-semibold text-lg text-blue-900 truncate">{prov.nombre}</span>
@@ -711,25 +777,6 @@ export default function ProveedoresPage() {
                 <div className="text-gray-700 text-sm"><b>Teléfono:</b> {prov.telefono}</div>
                 <div className="text-gray-700 text-sm"><b>Correo:</b> {prov.correo}</div>
                 <div className="text-gray-700 text-sm"><b>Dirección:</b> {prov.direccion}</div>
-                <div className="flex gap-2 mt-2">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => abrirModalEditar(prov)}
-                    title="Editar proveedor"
-                  >
-                    <Pencil size={16} />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="text-red-500"
-                    onClick={() => pedirConfirmacionEliminar(prov)}
-                    title="Eliminar proveedor"
-                  >
-                    <Trash2 size={16} />
-                  </Button>
-                </div>
               </div>
             ))}
           </div>
