@@ -9,7 +9,7 @@ export default function ClientShell({ children }: { children: React.ReactNode })
   const pathname = usePathname();
   const [sidebarAbierto, setSidebarAbierto] = useState(false);
 
-  const ocultarSidebar = pathname === '/login';
+  const ocultarSidebar = pathname === '/login' || pathname.startsWith('/roadmap');
 
   return (
     <div className="flex">

@@ -179,6 +179,13 @@ export default function LoginPage() {
               {loading ? 'Iniciando sesión...' : 'Ingresar'}
             </motion.button>
           </form>
+          <button
+            type="button"
+            className="w-full mt-6 bg-white border border-blue-200 text-blue-700 hover:bg-blue-50 rounded-lg shadow-sm px-6 py-2 text-base font-semibold transition-all duration-200 focus:ring-2 focus:ring-blue-300 focus:outline-none"
+            onClick={() => router.push('/roadmap')}
+          >
+            Ver Roadmap de Desarrollo
+          </button>
         </div>
       </div>
       {/* Lado derecho: animación de estrellas */}
