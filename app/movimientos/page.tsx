@@ -540,105 +540,116 @@ const movimiento = {
           >
             <X size={16} className="mr-1" /> Limpiar
           </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setFiltrosAbiertos((v) => !v)}
+            className="md:hidden"
+          >
+            {filtrosAbiertos ? 'Ocultar' : 'Mostrar'} filtros
+          </Button>
         </div>
-        {/* Filtros avanzados */}
-        <div className="mb-4">
-          {/* Fila principal de filtros alineados */}
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-2 md:gap-2 w-full mb-4">
-            {/* Buscar producto */}
-            <div className="flex flex-col relative w-full">
-              <label htmlFor="filtroProducto" className="text-sm text-gray-700 mb-1 font-medium">Producto</label>
-              <span className="absolute left-3 top-[70%] -translate-y-1/2 text-blue-400 pointer-events-none">
-                <Search size={20} />
-              </span>
-              <input
-                id="filtroProducto"
-                list="productos-list"
-                placeholder="Buscar producto"
-                value={filtroProducto}
-                onChange={e => setFiltroProducto(e.target.value)}
-                className="pl-10 rounded-md border border-blue-200 focus:border-blue-500 focus:ring-blue-300 bg-white h-11 text-base w-full"
-              />
-              <datalist id="productos-list">
-                {productosUnicos.map((nombre, i) => <option key={i} value={nombre} />)}
-              </datalist>
-            </div>
-            {/* Buscar motivo */}
-            <div className="flex flex-col relative w-full">
-              <label htmlFor="filtroMotivo" className="text-sm text-gray-700 mb-1 font-medium">Motivo</label>
-              <input
-                id="filtroMotivo"
-                list="motivos-list"
-                placeholder="Buscar motivo"
-                value={filtroMotivo}
-                onChange={e => setFiltroMotivo(e.target.value)}
-                className="rounded-md border border-blue-200 focus:border-blue-500 focus:ring-blue-300 bg-white h-11 text-base w-full"
-              />
-              <datalist id="motivos-list">
-                {motivosUnicos.map((motivo, i) => <option key={i} value={motivo} />)}
-              </datalist>
-            </div>
-            {/* Filtro por categoría */}
-            <div className="flex flex-col w-full">
-              <label htmlFor="filtroCategoria" className="text-sm text-gray-700 mb-1 font-medium">Categoría</label>
-              <Select value={filtroCategoria} onValueChange={setFiltroCategoria}>
-                <SelectTrigger id="filtroCategoria" className="rounded-md border border-blue-200 focus:border-blue-500 focus:ring-blue-300 bg-white h-11 text-base w-full">
-                  <SelectValue placeholder="Filtrar por categoría" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="todas">Todas</SelectItem>
-                  {categorias.map(cat => (
-                    <SelectItem key={cat.id} value={cat.nombre}>{cat.nombre}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            {/* Filtro por marca/proveedor */}
-            <div className="flex flex-col w-full">
-              <label htmlFor="filtroMarca" className="text-sm text-gray-700 mb-1 font-medium">Marca/Proveedor</label>
-              <Select value={filtroMarca} onValueChange={setFiltroMarca}>
-                <SelectTrigger id="filtroMarca" className="rounded-md border border-blue-200 focus:border-blue-500 focus:ring-blue-300 bg-white h-11 text-base w-full">
-                  <SelectValue placeholder="Filtrar por marca" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="todas">Todas</SelectItem>
-                  {proveedores.map(prov => (
-                    <SelectItem key={prov.id} value={prov.nombre}>{prov.nombre}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            {/* Filtro por tipo (entrada/salida) */}
-            <div className="flex flex-col w-full">
-              <label htmlFor="filtroTipo" className="text-sm text-gray-700 mb-1 font-medium">Tipo</label>
-              <Select value={filtroTipo} onValueChange={setFiltroTipo}>
-                <SelectTrigger id="filtroTipo" className="rounded-md border border-blue-200 focus:border-blue-500 focus:ring-blue-300 bg-white h-11 text-base w-full">
-                  <SelectValue placeholder="Filtrar por tipo" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="todos">Todos</SelectItem>
-                  <SelectItem value="entrada">Entrada</SelectItem>
-                  <SelectItem value="salida">Salida</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          {/* Fila de filtro de fecha debajo */}
-          <div className="w-full flex flex-col md:flex-row gap-2 mb-4">
-            <div className="flex flex-col w-full md:w-1/3">
-              <label htmlFor="filtroFecha" className="text-sm text-gray-700 mb-1 font-medium">Fecha</label>
-              <div className="relative w-full">
-                <Input
-                  id="filtroFecha"
-                  type="date"
-                  placeholder="dd/mm/yyyy"
-                  value={filtroFecha}
-                  onChange={(e) => setFiltroFecha(e.target.value)}
-                  className="pr-10 rounded-md border border-blue-200 focus:border-blue-500 focus:ring-blue-300 bg-white h-11 text-base w-full"
-                />
-                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
-                  <svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path d="M3 8h18M8 3v2m8-2v2m-9 4v9a2 2 0 002 2h6a2 2 0 002-2V9" stroke="#64748b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+        {/* Filtros colapsables en móvil */}
+        <div className={`${isMobile && !filtrosAbiertos ? 'hidden' : ''}`}>
+          {/* Filtros avanzados */}
+          <div className="mb-4">
+            {/* Fila principal de filtros alineados */}
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-2 md:gap-2 w-full mb-4">
+              {/* Buscar producto */}
+              <div className="flex flex-col relative w-full">
+                <label htmlFor="filtroProducto" className="text-sm text-gray-700 mb-1 font-medium">Producto</label>
+                <span className="absolute left-3 top-[70%] -translate-y-1/2 text-blue-400 pointer-events-none">
+                  <Search size={20} />
                 </span>
+                <input
+                  id="filtroProducto"
+                  list="productos-list"
+                  placeholder="Buscar producto"
+                  value={filtroProducto}
+                  onChange={e => setFiltroProducto(e.target.value)}
+                  className="pl-10 rounded-md border border-blue-200 focus:border-blue-500 focus:ring-blue-300 bg-white h-11 text-base w-full"
+                />
+                <datalist id="productos-list">
+                  {productosUnicos.map((nombre, i) => <option key={i} value={nombre} />)}
+                </datalist>
+              </div>
+              {/* Buscar motivo */}
+              <div className="flex flex-col relative w-full">
+                <label htmlFor="filtroMotivo" className="text-sm text-gray-700 mb-1 font-medium">Motivo</label>
+                <input
+                  id="filtroMotivo"
+                  list="motivos-list"
+                  placeholder="Buscar motivo"
+                  value={filtroMotivo}
+                  onChange={e => setFiltroMotivo(e.target.value)}
+                  className="rounded-md border border-blue-200 focus:border-blue-500 focus:ring-blue-300 bg-white h-11 text-base w-full"
+                />
+                <datalist id="motivos-list">
+                  {motivosUnicos.map((motivo, i) => <option key={i} value={motivo} />)}
+                </datalist>
+              </div>
+              {/* Filtro por categoría */}
+              <div className="flex flex-col w-full">
+                <label htmlFor="filtroCategoria" className="text-sm text-gray-700 mb-1 font-medium">Categoría</label>
+                <Select value={filtroCategoria} onValueChange={setFiltroCategoria}>
+                  <SelectTrigger id="filtroCategoria" className="rounded-md border border-blue-200 focus:border-blue-500 focus:ring-blue-300 bg-white h-11 text-base w-full">
+                    <SelectValue placeholder="Filtrar por categoría" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todas">Todas</SelectItem>
+                    {categorias.map(cat => (
+                      <SelectItem key={cat.id} value={cat.nombre}>{cat.nombre}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              {/* Filtro por marca/proveedor */}
+              <div className="flex flex-col w-full">
+                <label htmlFor="filtroMarca" className="text-sm text-gray-700 mb-1 font-medium">Marca/Proveedor</label>
+                <Select value={filtroMarca} onValueChange={setFiltroMarca}>
+                  <SelectTrigger id="filtroMarca" className="rounded-md border border-blue-200 focus:border-blue-500 focus:ring-blue-300 bg-white h-11 text-base w-full">
+                    <SelectValue placeholder="Filtrar por marca" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todas">Todas</SelectItem>
+                    {proveedores.map(prov => (
+                      <SelectItem key={prov.id} value={prov.nombre}>{prov.nombre}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              {/* Filtro por tipo (entrada/salida) */}
+              <div className="flex flex-col w-full">
+                <label htmlFor="filtroTipo" className="text-sm text-gray-700 mb-1 font-medium">Tipo</label>
+                <Select value={filtroTipo} onValueChange={setFiltroTipo}>
+                  <SelectTrigger id="filtroTipo" className="rounded-md border border-blue-200 focus:border-blue-500 focus:ring-blue-300 bg-white h-11 text-base w-full">
+                    <SelectValue placeholder="Filtrar por tipo" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todos">Todos</SelectItem>
+                    <SelectItem value="entrada">Entrada</SelectItem>
+                    <SelectItem value="salida">Salida</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            {/* Fila de filtro de fecha debajo */}
+            <div className="w-full flex flex-col md:flex-row gap-2 mb-4">
+              <div className="flex flex-col w-full md:w-1/3">
+                <label htmlFor="filtroFecha" className="text-sm text-gray-700 mb-1 font-medium">Fecha</label>
+                <div className="relative w-full">
+                  <Input
+                    id="filtroFecha"
+                    type="date"
+                    placeholder="dd/mm/yyyy"
+                    value={filtroFecha}
+                    onChange={(e) => setFiltroFecha(e.target.value)}
+                    className="pr-10 rounded-md border border-blue-200 focus:border-blue-500 focus:ring-blue-300 bg-white h-11 text-base w-full"
+                  />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
+                    <svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path d="M3 8h18M8 3v2m8-2v2m-9 4v9a2 2 0 002 2h6a2 2 0 002-2V9" stroke="#64748b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                  </span>
+                </div>
               </div>
             </div>
           </div>
