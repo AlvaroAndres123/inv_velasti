@@ -395,9 +395,9 @@ export default function ProductosPage() {
   // Verificar autenticación
   useEffect(() => {
     const user = localStorage.getItem("usuario");
-    if (!user) {
-      router.replace("/login");
-    }
+    // if (!user) {
+    //   router.replace("/login");
+    // }
   }, [router]);
 
   // Sincronizar categorías locales con las del hook

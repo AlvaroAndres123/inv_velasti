@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { List, LayoutGrid, Table, Filter, Search, ArrowLeftRight, Package, BadgeCheck, AlertTriangle } from "lucide-react";
+import { List, LayoutGrid, Table, Filter, Search, ArrowLeftRight, Package, BadgeCheck, AlertTriangle, X } from "lucide-react";
 import AutoCompleteProducto from "@/components/AutoCompleteProducto";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -138,9 +138,9 @@ export default function MovimientosPage() {
   // useEffect para redirección si no hay usuario
   useEffect(() => {
     const user = localStorage.getItem("usuario");
-    if (!user) {
-      router.replace("/login");
-    }
+    // if (!user) {
+    //   router.replace("/login");
+    // }
   }, [router]);
   // useEffect para enfocar input del modal
   useEffect(() => {
@@ -393,106 +393,84 @@ const movimiento = {
             </div>
           </div>
         </div>
-        {/* Filtros avanzados mejorados */}
-        <div className="mb-6 mt-6 bg-[#f8fafc] rounded-xl shadow-sm border border-gray-100 p-4">
-          <div className="flex flex-wrap items-center gap-2 mb-2 justify-between">
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => setFiltrosAbiertos((v) => !v)}
-                className="order-1 px-2 py-1 text-xs h-8 w-8 flex items-center justify-center"
-                title={filtrosAbiertos ? 'Ocultar filtros' : 'Mostrar filtros'}
-              >
-                {filtrosAbiertos ? <svg width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg> : <Filter size={16} />}
-              </Button>
-              <h3 className="font-semibold text-gray-700 ml-2">Filtros</h3>
-              <span className="ml-2 text-xs text-gray-500">{movimientosFiltrados.length} resultado(s)</span>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  setFiltroTextoGeneral("");
-                  setFiltroTipo("todos");
-                  setFiltroFecha("");
-                }}
-                className="text-gray-500 hover:text-gray-700 px-2 py-1 text-xs ml-2"
-              >
-                Limpiar
-              </Button>
+        {/* Filtros avanzados */}
+        <div className="mb-4">
+          <div className="flex flex-wrap items-center gap-2 mb-2">
+            <Filter className="text-blue-500" size={20} />
+            <h3 className="font-semibold text-gray-700">Filtros</h3>
+            <span className="ml-2 text-xs text-gray-500">{movimientosFiltrados.length} resultado(s)</span>
+            <label className="ml-4 text-xs text-gray-500">Mostrar</label>
+            <select
+              className="rounded-md border border-blue-200 focus:border-blue-400 focus:ring-blue-300 bg-white h-8 text-sm px-2"
+              value={movimientosPorPagina}
+              onChange={e => {
+                setMovimientosPorPagina(Number(e.target.value));
+                setPaginaActual(1);
+              }}
+            >
+              {opcionesPorPagina.map(op => (
+                <option key={op} value={op}>{op}</option>
+              ))}
+            </select>
+            <span className="text-xs text-gray-500">por página</span>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setFiltroTextoGeneral("");
+                setFiltroTipo("todos");
+                setFiltroFecha("");
+              }}
+              className="ml-auto text-gray-500 hover:text-gray-700"
+            >
+              <X size={16} className="mr-1" /> Limpiar
+            </Button>
+          </div>
+          {/* Fila principal de filtros alineados */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+            {/* Buscar */}
+            <div className="w-full flex flex-col relative">
+              <label className="text-sm text-gray-700 mb-1 font-medium opacity-0 select-none">.</label>
+              <span className="absolute left-3 top-[55%] -translate-y-1/2 text-blue-400 pointer-events-none">
+                <Search size={20} />
+              </span>
+              <Input
+                placeholder="Buscar por producto o motivo"
+                value={filtroTextoGeneral}
+                onChange={(e) => setFiltroTextoGeneral(e.target.value)}
+                className="pl-10 rounded-md border border-blue-200 focus:border-blue-400 focus:ring-blue-300 bg-white h-11 text-base w-full"
+              />
             </div>
-            <div className="flex items-center gap-2 mt-2 sm:mt-0">
-              <label className="text-xs text-gray-500">Mostrar</label>
-              <select
-                className="rounded-md border border-blue-200 focus:border-blue-400 focus:ring-blue-300 bg-white h-8 text-sm px-2"
-                value={movimientosPorPagina}
-                onChange={e => {
-                  setMovimientosPorPagina(Number(e.target.value));
-                  setPaginaActual(1);
-                }}
-              >
-                {opcionesPorPagina.map(op => (
-                  <option key={op} value={op}>{op}</option>
-                ))}
-              </select>
-              <span className="text-xs text-gray-500">por página</span>
+            {/* Tipo */}
+            <div className="w-full flex flex-col">
+              <label className="text-sm text-gray-700 mb-1 font-medium">Tipo</label>
+              <Select value={filtroTipo} onValueChange={setFiltroTipo}>
+                <SelectTrigger className="rounded-md border border-blue-200 focus:border-blue-400 focus:ring-blue-300 bg-white h-11 text-base">
+                  <SelectValue placeholder="Filtrar por tipo" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos</SelectItem>
+                  <SelectItem value="entrada">Entrada</SelectItem>
+                  <SelectItem value="salida">Salida</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            {/* Fecha */}
+            <div className="w-full flex flex-col">
+              <label className="text-sm text-gray-700 mb-1 font-medium">Fecha</label>
+              <div className="relative w-full">
+                <Input
+                  type="date"
+                  value={filtroFecha}
+                  onChange={(e) => setFiltroFecha(e.target.value)}
+                  className="pr-10 rounded-md border border-blue-200 focus:border-blue-400 focus:ring-blue-300 bg-white h-11 text-base w-full"
+                />
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
+                  <svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path d="M3 8h18M8 3v2m8-2v2m-9 4v9a2 2 0 002 2h6a2 2 0 002-2V9" stroke="#64748b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                </span>
+              </div>
             </div>
           </div>
-          <AnimatePresence>
-            {(filtrosAbiertos || !isMobile) && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0 }}
-                transition={{ duration: 0.2 }}
-                className="overflow-hidden"
-              >
-                <div className="flex flex-col md:grid md:grid-cols-3 gap-4 mb-4">
-                  <div className="w-full flex flex-col relative">
-                    <label className="text-sm text-gray-700 mb-1 font-medium">Buscar</label>
-                    <div className="relative w-full">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-blue-400 pointer-events-none">
-                        <Search size={16} />
-                      </span>
-                      <Input
-                        placeholder="Buscar por producto o motivo"
-                        value={filtroTextoGeneral}
-                        onChange={(e) => setFiltroTextoGeneral(e.target.value)}
-                        className="pl-10 rounded-md border border-blue-200 focus:border-blue-400 focus:ring-blue-300 bg-white h-10 sm:h-11 text-base w-full text-sm sm:text-base"
-                      />
-                    </div>
-                  </div>
-                  <div className="w-full flex flex-col">
-                    <label className="text-sm text-gray-700 mb-1 font-medium">Tipo</label>
-                    <Select value={filtroTipo} onValueChange={setFiltroTipo}>
-                      <SelectTrigger className="rounded-md border border-blue-200 focus:border-blue-400 focus:ring-blue-300 bg-white h-11 text-base">
-                        <SelectValue placeholder="Filtrar por tipo" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="todos">Todos</SelectItem>
-                        <SelectItem value="entrada">Entrada</SelectItem>
-                        <SelectItem value="salida">Salida</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="w-full flex flex-col">
-                    <label className="text-sm text-gray-700 mb-1 font-medium">Fecha</label>
-                    <div className="relative w-full">
-                      <Input
-                        type="date"
-                        value={filtroFecha}
-                        onChange={(e) => setFiltroFecha(e.target.value)}
-                        className="pr-10 rounded-md border border-blue-200 focus:border-blue-400 focus:ring-blue-300 bg-white h-10 sm:h-11 text-base w-full text-sm sm:text-base"
-                      />
-                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
-                        <svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path d="M3 8h18M8 3v2m8-2v2m-9 4v9a2 2 0 002 2h6a2 2 0 002-2V9" stroke="#64748b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
         </div>
         {/* Vista de movimientos */}
         {vista === 'tabla' ? (

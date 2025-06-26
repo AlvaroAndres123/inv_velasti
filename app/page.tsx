@@ -88,10 +88,10 @@ export default function Home() {
 
   useEffect(() => {
     const user = localStorage.getItem("usuario");
-    if (!user) {
-      router.replace("/login");
-      return;
-    }
+    // if (!user) {
+    //   router.replace("/login");
+    //   return;
+    // }
 
     Promise.all([
       fetch("/api/productos").then((res) => res.json()),
@@ -113,11 +113,12 @@ export default function Home() {
 
   useEffect(() => {
     const user = localStorage.getItem("usuario");
-    if (!user) {
-      router.replace("/login");
-    } else {
-      setCargando(false);
-    }
+    // if (!user) {
+    //   router.replace("/login");
+    // } else {
+    //   setCargando(false);
+    // }
+    setCargando(false);
   }, [router]);
 
     useEffect(() => {
