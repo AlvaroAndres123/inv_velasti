@@ -63,4 +63,9 @@ model Movimiento {
   fecha       DateTime @default(now())
   productoId  Int
   producto    Producto @relation(fields: [productoId], references: [id])
+  anulado           Boolean   @default(false)
+  motivo_anulacion  String?
+  fecha_anulacion   DateTime?
+  editado           Boolean   @default(false)
+  fecha_edicion     DateTime?
 }

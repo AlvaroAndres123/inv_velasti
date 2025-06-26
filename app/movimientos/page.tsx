@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { List, LayoutGrid, Table, Filter, Search, ArrowLeftRight, Package, BadgeCheck, AlertTriangle, X } from "lucide-react";
+import { List, LayoutGrid, Table, Filter, Search, ArrowLeftRight, Package, BadgeCheck, AlertTriangle, X, Trash2 } from "lucide-react";
 import AutoCompleteProducto from "@/components/AutoCompleteProducto";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -51,6 +51,9 @@ interface Movimiento {
   cantidad: number;
   motivo: string;
   fecha: string;
+  anulado: boolean;
+  motivo_anulacion: string;
+  fecha_anulacion: string;
 }
 
 interface Producto {
@@ -118,6 +121,11 @@ export default function MovimientosPage() {
   // Agregar estados para el rango de fechas
   const [filtroFechaInicio, setFiltroFechaInicio] = useState("");
   const [filtroFechaFin, setFiltroFechaFin] = useState("");
+  // Estado para anulación
+  const [modalAnular, setModalAnular] = useState(false);
+  const [movimientoAAnular, setMovimientoAAnular] = useState<Movimiento | null>(null);
+  const [motivoAnulacion, setMotivoAnulacion] = useState("");
+  const [anulando, setAnulando] = useState(false);
 
   // Motivos únicos para autocomplete
   const motivosUnicos = Array.from(new Set(movimientos.map(m => m.motivo))).filter(Boolean);
@@ -472,6 +480,40 @@ const movimiento = {
     );
   }
 
+  // Función para abrir modal de anulación
+  const abrirModalAnular = (mov: Movimiento) => {
+    setMovimientoAAnular(mov);
+    setMotivoAnulacion("");
+    setModalAnular(true);
+  };
+  // Función para anular movimiento
+  const anularMovimiento = async () => {
+    if (!movimientoAAnular || !motivoAnulacion.trim()) {
+      showError("Motivo requerido", "Debes ingresar el motivo de anulación.");
+      return;
+    }
+    setAnulando(true);
+    try {
+      const res = await fetch("/api/movimientos", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: movimientoAAnular.id, motivo_anulacion: motivoAnulacion }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setMovimientos((prev) => prev.map(m => m.id === movimientoAAnular.id ? { ...m, anulado: true, motivo_anulacion: motivoAnulacion, fecha_anulacion: new Date().toISOString() } : m));
+        setModalAnular(false);
+        success("Movimiento anulado", "El movimiento ha sido anulado correctamente.");
+      } else {
+        showError("Error al anular", data.error || "No se pudo anular el movimiento.");
+      }
+    } catch (err) {
+      showError("Error inesperado", "Ocurrió un error al anular el movimiento.");
+    } finally {
+      setAnulando(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[#f6f8fa] flex flex-col items-center justify-start py-4">
       <div className="w-full max-w-7xl px-4 sm:px-8 mx-auto">
@@ -755,6 +797,15 @@ const movimiento = {
                       <span className="text-xs text-gray-400 font-medium">Motivo:</span>
                       <span className="text-xs text-gray-700 truncate">{mov.motivo}</span>
                     </div>
+                    <div className="flex items-center gap-2">
+                      {mov.anulado ? (
+                        <span className="px-2 py-0.5 rounded-full bg-gray-200 text-gray-500 text-xs font-semibold">Anulado</span>
+                      ) : (
+                        <Button variant="destructive" size="sm" onClick={() => abrirModalAnular(mov)}>
+                          <Trash2 size={16} className="mr-1" /> Anular
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -829,6 +880,7 @@ const movimiento = {
                         <th className="px-4 py-4 border-b border-gray-300">Producto</th>
                         <th className="px-4 py-4 border-b border-gray-300">Cantidad</th>
                         <th className="px-4 py-4 border-b border-gray-300">Motivo</th>
+                        <th className="px-4 py-4 border-b border-gray-300">Acciones</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -864,6 +916,15 @@ const movimiento = {
                                 </TooltipContent>
                               </Tooltip>
                             </TooltipProvider>
+                          </td>
+                          <td className="px-4 py-4 border-b border-gray-100">
+                            {mov.anulado ? (
+                              <span className="px-2 py-0.5 rounded-full bg-gray-200 text-gray-500 text-xs font-semibold">Anulado</span>
+                            ) : (
+                              <Button variant="destructive" size="sm" onClick={() => abrirModalAnular(mov)}>
+                                <Trash2 size={16} className="mr-1" /> Anular
+                              </Button>
+                            )}
                           </td>
                         </tr>
                       ))}
@@ -1238,6 +1299,32 @@ const movimiento = {
             <Plus size={32} />
           </Button>
         </div>
+
+        {/* Modal de anulación */}
+        <Dialog open={modalAnular} onOpenChange={setModalAnular}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 text-red-600">
+                <Trash2 size={22} /> Anular movimiento
+              </DialogTitle>
+            </DialogHeader>
+            <div className="mb-2 text-gray-700">
+              ¿Estás seguro de que deseas anular este movimiento? Esta acción revertirá el stock y no se puede deshacer.<br />
+              <span className="font-semibold">Producto:</span> {movimientoAAnular?.producto?.nombre || ""}<br />
+              <span className="font-semibold">Cantidad:</span> {movimientoAAnular?.cantidad} ({movimientoAAnular?.tipo})
+            </div>
+            <div className="mb-2">
+              <Label htmlFor="motivoAnulacion">Motivo de anulación</Label>
+              <Textarea id="motivoAnulacion" value={motivoAnulacion} onChange={e => setMotivoAnulacion(e.target.value)} rows={2} className="rounded-lg border-blue-200 focus:border-blue-400 focus:ring-blue-300" placeholder="Explica el motivo de la anulación..." />
+            </div>
+            <div className="flex gap-2 justify-end">
+              <Button variant="outline" onClick={() => setModalAnular(false)} disabled={anulando}>Cancelar</Button>
+              <Button variant="destructive" onClick={anularMovimiento} disabled={anulando}>
+                {anulando ? "Anulando..." : "Anular"}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
