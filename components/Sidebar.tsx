@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   Home,
   Package,
@@ -28,6 +29,7 @@ export default function Sidebar({
   abierto: boolean;
   setAbierto: (value: boolean) => void;
 }) {
+  const router = useRouter();
   const pathname = usePathname();
   const [usuario, setUsuario] = useState<{ nombre: string } | null>(null);
 
@@ -44,7 +46,7 @@ export default function Sidebar({
 
   const cerrarSesion = () => {
     localStorage.removeItem('usuario');
-    window.location.href = '/login';
+    router.push('/login');
   };
 
   return (

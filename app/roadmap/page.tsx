@@ -134,7 +134,10 @@ export default function RoadmapPage() {
       <div className="flex justify-center mt-16">
         <button
           className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-md px-8 py-3 text-lg font-semibold transition-all duration-200 focus:ring-2 focus:ring-blue-300 focus:outline-none"
-          onClick={() => router.push('/login')}
+          onClick={() => {
+            localStorage.removeItem('usuario');
+            router.push('/login');
+          }}
         >
           Regresar al Inicio de Sesión
         </button>

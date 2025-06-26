@@ -17,10 +17,10 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
+  // Limpiar localStorage al cargar la página de login
   useEffect(() => {
-    const user = localStorage.getItem('usuario');
-    if (user) router.replace('/');
-  }, [router]);
+    localStorage.removeItem('usuario');
+  }, []);
 
   // Animación de estrellas
   useLayoutEffect(() => {
