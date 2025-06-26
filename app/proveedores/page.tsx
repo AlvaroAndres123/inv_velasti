@@ -456,31 +456,29 @@ export default function ProveedoresPage() {
           </div>
         </div>
         {/* Tabla moderna y responsive */}
-        <div className="overflow-x-auto">
-          <table className="min-w-full text-sm text-left text-gray-700 bg-white border-separate border-spacing-0">
-            <thead className="bg-gray-200 text-xs uppercase text-gray-500">
-              <tr>
-                <th className="px-6 py-4 border-b border-gray-300">Nombre</th>
-                <th className="px-6 py-4 border-b border-gray-300">Contacto</th>
-                <th className="px-6 py-4 border-b border-gray-300">Teléfono</th>
-                <th className="px-6 py-4 border-b border-gray-300">Correo</th>
-                <th className="px-6 py-4 border-b border-gray-300">Dirección</th>
-                <th className="px-6 py-4 border-b border-gray-300">Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              {proveedoresPaginados.length === 0 ? (
+        {proveedoresPaginados.length === 0 ? (
+          <div className="flex flex-col items-center justify-center min-h-[180px] w-full text-blue-500 bg-white rounded-xl shadow p-6 my-8">
+            <Package size={40} className="mb-2" />
+            <span className="text-lg font-semibold">No hay proveedores para mostrar</span>
+            <span className="text-sm text-gray-500 mt-1">
+              {proveedores.length > 0 ? "Intenta ajustar los filtros" : "Agrega tu primer proveedor"}
+            </span>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-sm text-left text-gray-700 bg-white border-separate border-spacing-0">
+              <thead className="bg-gray-200 text-xs uppercase text-gray-500">
                 <tr>
-                  <td colSpan={6} className="text-center py-8 text-blue-500">
-                    <Package size={32} className="mx-auto mb-2" />
-                    <div>No hay proveedores para mostrar</div>
-                    <div className="text-sm text-gray-500 mt-1">
-                      {proveedores.length > 0 ? "Intenta ajustar los filtros" : "Agrega tu primer proveedor"}
-                    </div>
-                  </td>
+                  <th className="px-6 py-4 border-b border-gray-300">Nombre</th>
+                  <th className="px-6 py-4 border-b border-gray-300">Contacto</th>
+                  <th className="px-6 py-4 border-b border-gray-300">Teléfono</th>
+                  <th className="px-6 py-4 border-b border-gray-300">Correo</th>
+                  <th className="px-6 py-4 border-b border-gray-300">Dirección</th>
+                  <th className="px-6 py-4 border-b border-gray-300">Acciones</th>
                 </tr>
-              ) : (
-                proveedoresPaginados.map((prov) => (
+              </thead>
+              <tbody>
+                {proveedoresPaginados.map((prov) => (
                   <tr key={prov.id} className="border-t border-gray-200 hover:bg-blue-50/40 transition">
                     <td className="px-6 py-4 font-medium">
                       <TooltipProvider delayDuration={300}>
@@ -545,11 +543,11 @@ export default function ProveedoresPage() {
                       </div>
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
         {/* Controles de paginación debajo de la lista */}
         {isMobile ? (
           <>
@@ -577,7 +575,7 @@ export default function ProveedoresPage() {
                     : <Button
                         key={num}
                         variant={paginaActual === num ? 'default' : 'outline'}
-                        size="xs"
+                        size="sm"
                         onClick={() => setPaginaActual(num as number)}
                         className={paginaActual === num ? 'bg-blue-600 text-white min-w-[40px]' : 'min-w-[40px]'}
                       >{num}</Button>

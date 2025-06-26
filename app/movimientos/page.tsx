@@ -642,33 +642,21 @@ const movimiento = {
               </div>
             </div>
           </div>
-          {/* Mensaje destacado si no hay resultados */}
-          {movimientosFiltrados.length === 0 && (
-            <div className="flex flex-col items-center justify-center min-h-[120px] text-blue-500 bg-white rounded-xl shadow p-6 mt-4">
-              <svg className="animate-bounce mb-2" width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z" fill="#3b82f6" />
-              </svg>
-              <span className="text-blue-600 text-lg font-semibold text-center">
-                No hay movimientos que coincidan con los filtros seleccionados
-              </span>
-              <span className="text-xs text-gray-500 mt-1">Ajusta los filtros para ver resultados</span>
-            </div>
-          )}
         </div>
         {/* Vista de movimientos */}
         {(isMobile || vista === 'tarjetas') ? (
           <>
-            <div className="w-full grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mt-6 mb-4">
-              {movimientosPaginados.length === 0 ? (
-                <div className="flex flex-col items-center justify-center min-h-[120px] text-blue-500 bg-white rounded-xl shadow p-6">
-                  <Package size={36} className="mb-2" />
-                  <span className="text-base font-semibold">No hay movimientos para mostrar</span>
-                  <span className="text-xs text-gray-500 mt-1">
-                    {movimientos.length > 0 ? "Intenta ajustar los filtros" : "Registra tu primer movimiento"}
-                  </span>
-                </div>
-              ) : (
-                movimientosPaginados.map((mov) => (
+            {movimientosPaginados.length === 0 ? (
+              <div className="flex flex-col items-center justify-center min-h-[180px] w-full text-blue-500 bg-white rounded-xl shadow p-6 my-8">
+                <ArrowLeftRight size={40} className="mb-2" />
+                <span className="text-lg font-semibold">No hay movimientos para mostrar</span>
+                <span className="text-sm text-gray-500 mt-1">
+                  {movimientos.length > 0 ? "Intenta ajustar los filtros" : "Registra tu primer movimiento"}
+                </span>
+              </div>
+            ) : (
+              <div className="w-full grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mt-6 mb-4">
+                {movimientosPaginados.map((mov) => (
                   <div key={mov.id} className="bg-white rounded-xl shadow p-4 flex flex-col gap-2 border border-gray-100">
                     <div className="flex items-center justify-between">
                       <span className="text-xs text-gray-500 font-medium">{formatearFechaCorta(mov.fecha)}</span>
@@ -696,9 +684,9 @@ const movimiento = {
                       <span className="text-xs text-gray-700 truncate">{mov.motivo}</span>
                     </div>
                   </div>
-                ))
-              )}
-            </div>
+                ))}
+              </div>
+            )}
             {/* Números de página scrollable */}
             <div className="flex justify-center items-center gap-2 mt-8 overflow-x-auto flex-nowrap pb-2">
               {(() => {
@@ -723,7 +711,7 @@ const movimiento = {
                     : <Button
                         key={num}
                         variant={paginaActual === num ? 'default' : 'outline'}
-                        size="xs"
+                        size="sm"
                         onClick={() => setPaginaActual(num as number)}
                         className={paginaActual === num ? 'bg-blue-600 text-white min-w-[40px]' : 'min-w-[40px]'}
                       >{num}</Button>
@@ -751,30 +739,28 @@ const movimiento = {
         ) : (
           <>
             <div className="w-full">
-              <div className="hidden sm:block overflow-x-auto rounded-xl shadow bg-white mt-6">
-                <table className="min-w-full text-sm text-left text-gray-700 bg-white border-separate border-spacing-0">
-                  <thead className="bg-gray-200 text-xs uppercase text-gray-500">
-                    <tr>
-                      <th className="px-4 py-4 border-b border-gray-300">Fecha</th>
-                      <th className="px-4 py-4 border-b border-gray-300">Tipo</th>
-                      <th className="px-4 py-4 border-b border-gray-300">Producto</th>
-                      <th className="px-4 py-4 border-b border-gray-300">Cantidad</th>
-                      <th className="px-4 py-4 border-b border-gray-300">Motivo</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {movimientosPaginados.length === 0 ? (
+              {movimientosPaginados.length === 0 ? (
+                <div className="flex flex-col items-center justify-center min-h-[180px] w-full text-blue-500 bg-white rounded-xl shadow p-6 my-8">
+                  <ArrowLeftRight size={40} className="mb-2" />
+                  <span className="text-lg font-semibold">No hay movimientos para mostrar</span>
+                  <span className="text-sm text-gray-500 mt-1">
+                    {movimientos.length > 0 ? "Intenta ajustar los filtros" : "Registra tu primer movimiento"}
+                  </span>
+                </div>
+              ) : (
+                <div className="hidden sm:block overflow-x-auto rounded-xl shadow bg-white mt-6">
+                  <table className="min-w-full text-sm text-left text-gray-700 bg-white border-separate border-spacing-0">
+                    <thead className="bg-gray-200 text-xs uppercase text-gray-500">
                       <tr>
-                        <td colSpan={5} className="text-center py-8 text-blue-500">
-                          <Package size={32} className="mx-auto mb-2" />
-                          <div>No hay movimientos para mostrar</div>
-                          <div className="text-sm text-gray-500 mt-1">
-                            {movimientos.length > 0 ? "Intenta ajustar los filtros" : "Registra tu primer movimiento"}
-                          </div>
-                        </td>
+                        <th className="px-4 py-4 border-b border-gray-300">Fecha</th>
+                        <th className="px-4 py-4 border-b border-gray-300">Tipo</th>
+                        <th className="px-4 py-4 border-b border-gray-300">Producto</th>
+                        <th className="px-4 py-4 border-b border-gray-300">Cantidad</th>
+                        <th className="px-4 py-4 border-b border-gray-300">Motivo</th>
                       </tr>
-                    ) : (
-                      movimientosPaginados.map((mov) => (
+                    </thead>
+                    <tbody>
+                      {movimientosPaginados.map((mov) => (
                         <tr key={mov.id} className="border-t hover:bg-blue-50/40 transition">
                           <td className="px-4 py-4 border-b border-gray-100">{formatearFechaCorta(mov.fecha)}</td>
                           <td className="px-4 py-4 border-b border-gray-100">
@@ -808,11 +794,11 @@ const movimiento = {
                             </TooltipProvider>
                           </td>
                         </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
             {/* Paginación en desktop */}
             {renderPaginacion({ paginaActual, totalPaginas, setPaginaActual })}

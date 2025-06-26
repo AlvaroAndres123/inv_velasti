@@ -974,9 +974,9 @@ export default function ProductosPage() {
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
-                  className="flex flex-col items-center justify-center min-h-[200px] text-blue-500"
+                  className="flex flex-col items-center justify-center min-h-[180px] text-blue-500 bg-white rounded-xl shadow p-6 my-8"
                 >
-                  <Package size={48} className="mb-2" />
+                  <Package size={40} className="mb-2" />
                   <span className="text-lg font-semibold">No hay productos para mostrar</span>
                   <span className="text-sm text-gray-500 mt-1">
                     {productos.length > 0 ? "Intenta ajustar los filtros" : "Agrega tu primer producto"}
@@ -1112,34 +1112,32 @@ export default function ProductosPage() {
         </TooltipProvider>
       ) : (
         <div className="w-full overflow-x-auto rounded-xl shadow">
-          <table className="min-w-full text-sm text-left text-gray-700 bg-white">
-            <thead className="bg-gray-100 text-xs uppercase text-gray-500">
-              <tr>
-                <th className="px-4 py-4 w-8 text-center">
-                  <input type="checkbox" checked={todosSeleccionados} onChange={toggleSeleccionTodos} />
-                </th>
-                <th className="px-6 py-4">Imagen</th>
-                <th className="px-6 py-4">Nombre</th>
-                <th className="px-6 py-4">Categoría</th>
-                <th className="px-6 py-4">Proveedor</th>
-                <th className="px-6 py-4">Precio</th>
-                <th className="px-6 py-4">Stock</th>
-                <th className="px-6 py-4">Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              {productosFiltrados.length === 0 ? (
+          {productosFiltrados.length === 0 ? (
+            <div className="flex flex-col items-center justify-center min-h-[180px] text-blue-500 bg-white rounded-xl shadow p-6 my-8">
+              <Package size={40} className="mb-2" />
+              <span className="text-lg font-semibold">No hay productos para mostrar</span>
+              <span className="text-sm text-gray-500 mt-1">
+                {productos.length > 0 ? "Intenta ajustar los filtros" : "Agrega tu primer producto"}
+              </span>
+            </div>
+          ) : (
+            <table className="min-w-full text-sm text-left text-gray-700 bg-white">
+              <thead className="bg-gray-100 text-xs uppercase text-gray-500">
                 <tr>
-                  <td colSpan={7} className="text-center py-8 text-blue-500">
-                    <Package size={32} className="mx-auto mb-2" />
-                    <div>No hay productos para mostrar</div>
-                    <div className="text-sm text-gray-500 mt-1">
-                      {productos.length > 0 ? "Intenta ajustar los filtros" : "Agrega tu primer producto"}
-                    </div>
-                  </td>
+                  <th className="px-4 py-4 w-8 text-center">
+                    <input type="checkbox" checked={todosSeleccionados} onChange={toggleSeleccionTodos} />
+                  </th>
+                  <th className="px-6 py-4">Imagen</th>
+                  <th className="px-6 py-4">Nombre</th>
+                  <th className="px-6 py-4">Categoría</th>
+                  <th className="px-6 py-4">Proveedor</th>
+                  <th className="px-6 py-4">Precio</th>
+                  <th className="px-6 py-4">Stock</th>
+                  <th className="px-6 py-4">Acciones</th>
                 </tr>
-              ) : (
-                productosPaginadosFiltrados.map((prod) => (
+              </thead>
+              <tbody>
+                {productosPaginadosFiltrados.map((prod) => (
                   <tr key={prod.id} className="border-t hover:bg-blue-50/40 transition">
                     <td className="px-4 py-4 text-center">
                       <input type="checkbox" checked={seleccionados.includes(prod.id)} onChange={() => toggleSeleccion(prod.id)} />
@@ -1215,10 +1213,10 @@ export default function ProductosPage() {
                       </div>
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                ))}
+              </tbody>
+            </table>
+          )}
         </div>
       )}
 
@@ -1249,7 +1247,7 @@ export default function ProductosPage() {
                   : <Button
                       key={num}
                       variant={paginaActual === num ? 'default' : 'outline'}
-                      size="xs"
+                      size="sm"
                       onClick={() => setPaginaActual(num as number)}
                       className={paginaActual === num ? 'bg-blue-600 text-white min-w-[40px]' : 'min-w-[40px]'}
                     >{num}</Button>
