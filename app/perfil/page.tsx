@@ -4,66 +4,103 @@ import { useEffect, useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { User, Lock, CheckCircle, Clock } from 'lucide-react';
+import { useToast, ToastContainer } from '@/components/ui/toast';
+
+interface Actividad {
+  fecha: string;
+  accion: string;
+  ip: string;
+}
 
 export default function PerfilPage() {
   const [nombre, setNombre] = useState('');
+  const [nombreOriginal, setNombreOriginal] = useState('');
   const [contrasenaActual, setContrasenaActual] = useState('');
   const [nuevaContrasena, setNuevaContrasena] = useState('');
   const [confirmarContrasena, setConfirmarContrasena] = useState('');
   const [guardado, setGuardado] = useState(false);
   const [error, setError] = useState('');
+  const [cargando, setCargando] = useState(true);
+  const [actividades, setActividades] = useState<Actividad[]>([]);
+  const { toasts, success, error: showError, removeToast } = useToast();
 
+  // Obtener usuario de localStorage y cargar datos reales
   useEffect(() => {
-    const usuario = localStorage.getItem('usuario');
-    if (usuario) {
-      const { nombre } = JSON.parse(usuario);
-      setNombre(nombre || '');
+    const usuarioLS = localStorage.getItem('usuario');
+    if (usuarioLS) {
+      const { nombre } = JSON.parse(usuarioLS);
+      if (nombre) {
+        fetch(`/api/perfil?nombre=${encodeURIComponent(nombre)}`)
+          .then(res => res.json())
+          .then(data => {
+            if (data && !data.error) {
+              setNombre(data.nombre);
+              setNombreOriginal(data.nombre);
+              // Cargar historial de actividad
+              fetch(`/api/perfil/actividad?nombre=${encodeURIComponent(data.nombre)}`)
+                .then(res => res.json())
+                .then(hist => {
+                  if (Array.isArray(hist)) setActividades(hist);
+                });
+            }
+          })
+          .finally(() => setCargando(false));
+      }
+    } else {
+      setCargando(false);
     }
   }, []);
 
-  const actualizarPerfil = (e: React.FormEvent) => {
+  const actualizarPerfil = async (e: React.FormEvent) => {
     e.preventDefault();
-    const usuario = localStorage.getItem('usuario');
-    if (usuario) {
-      const data = JSON.parse(usuario);
-
-      // Validar cambio de contraseña
-      if (contrasenaActual || nuevaContrasena || confirmarContrasena) {
-        if (data.contrasena && data.contrasena !== contrasenaActual) {
-          setError('La contraseña actual no es correcta');
-          return;
-        }
-        if (nuevaContrasena !== confirmarContrasena) {
-          setError('Las nuevas contraseñas no coinciden');
-          return;
-        }
-
-        const fuerza = calcularFuerza(nuevaContrasena);
-        if (fuerza.label === 'Débil') {
-          setError('La nueva contraseña es demasiado débil');
-          return;
-        }
-
-        data.contrasena = nuevaContrasena;
+    setError('');
+    setGuardado(false);
+    if (nuevaContrasena && nuevaContrasena !== confirmarContrasena) {
+      showError('Error', 'Las nuevas contraseñas no coinciden');
+      return;
+    }
+    try {
+      const res = await fetch('/api/perfil', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          nombre: nombreOriginal,
+          nuevoNombre: nombre,
+          contrasenaActual: contrasenaActual || undefined,
+          nuevaContrasena: nuevaContrasena || undefined,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        showError('Error', data.error || 'Error al actualizar perfil');
+        return;
       }
-
-      data.nombre = nombre;
-      localStorage.setItem('usuario', JSON.stringify(data));
-      setError('');
       setGuardado(true);
+      setNombreOriginal(data.nombre);
+      localStorage.setItem('usuario', JSON.stringify({ nombre: data.nombre }));
       setContrasenaActual('');
       setNuevaContrasena('');
       setConfirmarContrasena('');
+      // Recargar historial
+      fetch(`/api/perfil/actividad?nombre=${encodeURIComponent(data.nombre)}`)
+        .then(res => res.json())
+        .then(hist => {
+          if (Array.isArray(hist)) setActividades(hist);
+        });
+      success('Perfil actualizado', 'Los cambios se guardaron correctamente.');
       setTimeout(() => setGuardado(false), 2000);
+    } catch (err) {
+      showError('Error', 'Error al actualizar perfil');
     }
   };
 
-  // Simulo historial de actividad
-  const historial = [
-    { fecha: '2024-06-25 10:15', accion: 'Inicio de sesión', ip: '192.168.1.10' },
-    { fecha: '2024-06-24 18:02', accion: 'Cambio de contraseña', ip: '192.168.1.10' },
-    { fecha: '2024-06-23 09:30', accion: 'Actualización de perfil', ip: '192.168.1.10' },
-  ];
+  if (cargando) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-5xl w-full mx-auto mt-8 bg-white rounded-2xl shadow-xl p-10 space-y-10 border border-blue-100 flex flex-col">
@@ -92,37 +129,31 @@ export default function PerfilPage() {
           <div className="flex-1 border-l md:border-l border-t md:border-t-0 border-blue-100 pl-0 md:pl-8 pt-6 md:pt-0">
             <h3 className="text-lg font-semibold text-gray-800 mb-2 flex items-center gap-2"><Lock className="text-blue-400" size={20}/> Cambiar contraseña</h3>
             <div className="space-y-4 max-w-md">
-              <div className="relative">
+              <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Contraseña actual</label>
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-blue-400 pointer-events-none"><Lock size={18} /></span>
                 <Input
                   type="password"
                   value={contrasenaActual}
                   onChange={(e) => setContrasenaActual(e.target.value)}
-                  className="pl-10"
                 />
               </div>
-              <div className="relative">
+              <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Nueva contraseña</label>
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-blue-400 pointer-events-none"><Lock size={18} /></span>
                 <Input
                   type="password"
                   value={nuevaContrasena}
                   onChange={(e) => setNuevaContrasena(e.target.value)}
-                  className="pl-10"
                 />
                 {nuevaContrasena && (
                   <PasswordStrengthMeter password={nuevaContrasena} />
                 )}
               </div>
-              <div className="relative">
+              <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Confirmar nueva contraseña</label>
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-blue-400 pointer-events-none"><Lock size={18} /></span>
                 <Input
                   type="password"
                   value={confirmarContrasena}
                   onChange={(e) => setConfirmarContrasena(e.target.value)}
-                  className="pl-10"
                 />
               </div>
             </div>
@@ -152,21 +183,24 @@ export default function PerfilPage() {
               <tr>
                 <th className="px-4 py-3">Fecha y hora</th>
                 <th className="px-4 py-3">Acción</th>
-                <th className="px-4 py-3">IP</th>
               </tr>
             </thead>
             <tbody>
-              {historial.map((item, i) => (
-                <tr key={i} className="border-b last:border-b-0">
-                  <td className="px-4 py-2 whitespace-nowrap">{item.fecha}</td>
-                  <td className="px-4 py-2 whitespace-nowrap">{item.accion}</td>
-                  <td className="px-4 py-2 whitespace-nowrap">{item.ip}</td>
-                </tr>
-              ))}
+              {actividades.length === 0 ? (
+                <tr><td colSpan={2} className="text-center py-4 text-gray-400">Sin actividad reciente</td></tr>
+              ) : (
+                actividades.map((item, i) => (
+                  <tr key={i} className="border-b last:border-b-0">
+                    <td className="px-4 py-2 whitespace-nowrap">{item.fecha}</td>
+                    <td className="px-4 py-2 whitespace-nowrap">{item.accion}</td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
       </div>
+      <ToastContainer toasts={toasts} onClose={removeToast} />
     </div>
   );
 }

@@ -812,6 +812,85 @@ async function main() {
   console.log(`📊 ${movimientosEntrada.length + movimientosSalida.length} movimientos creados`);
   console.log('\n🔑 Credenciales de acceso:');
   console.log('   • admin@velasti.com / admin123');
+
+  // Crear configuraciones iniciales del sistema
+  console.log('🔧 Creando configuraciones iniciales...');
+  
+  const configuraciones = await Promise.all([
+    prisma.configuracion.upsert({
+      where: { clave: 'nombre_empresa' },
+      update: {},
+      create: {
+        clave: 'nombre_empresa',
+        valor: 'Velasti Beauty',
+        descripcion: 'Nombre de la empresa que aparece en reportes y documentos',
+        tipo: 'string'
+      },
+    }),
+    prisma.configuracion.upsert({
+      where: { clave: 'moneda' },
+      update: {},
+      create: {
+        clave: 'moneda',
+        valor: 'L.',
+        descripcion: 'Símbolo de moneda para mostrar en precios',
+        tipo: 'string'
+      },
+    }),
+    prisma.configuracion.upsert({
+      where: { clave: 'stock_minimo' },
+      update: {},
+      create: {
+        clave: 'stock_minimo',
+        valor: '10',
+        descripcion: 'Cantidad mínima de stock para alertas de inventario bajo',
+        tipo: 'number'
+      },
+    }),
+    prisma.configuracion.upsert({
+      where: { clave: 'alertas_stock' },
+      update: {},
+      create: {
+        clave: 'alertas_stock',
+        valor: 'true',
+        descripcion: 'Habilitar alertas de stock bajo',
+        tipo: 'boolean'
+      },
+    }),
+    prisma.configuracion.upsert({
+      where: { clave: 'configuracion_ventas' },
+      update: {},
+      create: {
+        clave: 'configuracion_ventas',
+        valor: JSON.stringify({
+          impuesto: 15,
+          descuento_maximo: 20,
+          metodo_pago: ['efectivo', 'tarjeta', 'transferencia']
+        }),
+        descripcion: 'Configuración general de ventas y facturación',
+        tipo: 'json'
+      },
+    }),
+    prisma.configuracion.upsert({
+      where: { clave: 'tema_aplicacion' },
+      update: {},
+      create: {
+        clave: 'tema_aplicacion',
+        valor: 'light',
+        descripcion: 'Tema de la aplicación (light/dark)',
+        tipo: 'string'
+      },
+    }),
+  ]);
+
+  console.log('✅ Seed completado exitosamente!');
+  console.log(`📊 Resumen:`);
+  console.log(`   - Usuarios: 1`);
+  console.log(`   - Categorías: ${categorias.length}`);
+  console.log(`   - Proveedores: ${proveedores.length}`);
+  console.log(`   - Productos: ${todosLosProductos.length}`);
+  console.log(`   - Movimientos: ${movimientosEntrada.length + movimientosSalida.length}`);
+  console.log(`   - Configuraciones: ${configuraciones.length}`);
 }
 
 main()

@@ -19,7 +19,7 @@ const links = [
   { href: '/productos', label: 'Productos', icon: <Package size={20} /> },
   { href: '/movimientos', label: 'Movimientos', icon: <ArrowLeftRight size={20} /> },
   { href: '/proveedores', label: 'Proveedores', icon: <Truck size={20} /> },
-  { href: '/perfil', label: 'Configuración', icon: <Settings size={20} /> },
+  { href: '/perfil', label: 'Perfil', icon: <UserCircle size={20} /> },
 ];
 
 export default function Sidebar({

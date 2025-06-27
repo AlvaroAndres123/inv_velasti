@@ -80,3 +80,13 @@ model Actividad {
   ip        String?
   detalles  String?
 }
+
+model Configuracion {
+  id          Int      @id @default(autoincrement())
+  clave       String   @unique
+  valor       String
+  descripcion String?
+  tipo        String   @default("string") // string, number, boolean, json
+  creadoEn    DateTime @default(now())
+  actualizadoEn DateTime @updatedAt
+}
