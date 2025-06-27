@@ -6,11 +6,27 @@ const prisma = new PrismaClient();
 // GET: obtener un producto por ID
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const id = parseInt(params.id);
   try {
-    const producto = await prisma.producto.findUnique({ where: { id } });
+    const { id } = await params;
+    const productoId = parseInt(id);
+    
+    if (isNaN(productoId)) {
+      return NextResponse.json(
+        { error: "ID inválido" },
+        { status: 400 }
+      );
+    }
+
+    const producto = await prisma.producto.findUnique({ 
+      where: { id: productoId },
+      include: {
+        categoria: true,
+        proveedor: true,
+      }
+    });
+    
     if (!producto) {
       return NextResponse.json(
         { error: "Producto no encontrado" },
@@ -28,19 +44,21 @@ export async function GET(
 }
 
 // PUT: actualizar un producto
-export async function PUT(req: NextRequest) {
-  const url = new URL(req.url);
-  const idStr = url.pathname.split('/').pop(); 
-  const id = Number(idStr);
-
-  if (isNaN(id)) {
-    return NextResponse.json({ error: 'ID inválido' }, { status: 400 });
-  }
-  const body = await req.json();
-  const { nombre, descripcion, categoria, proveedor, precio, stock, imagen, destacado } =
-    body;
-
+export async function PUT(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
   try {
+    const { id } = await params;
+    const productoId = parseInt(id);
+
+    if (isNaN(productoId)) {
+      return NextResponse.json({ error: 'ID inválido' }, { status: 400 });
+    }
+    
+    const body = await req.json();
+    const { nombre, descripcion, categoria, proveedor, precio, stock, imagen, destacado } = body;
+
     const data: any = {
       nombre,
       descripcion,
@@ -49,14 +67,16 @@ export async function PUT(req: NextRequest) {
       imagen,
       ...(typeof destacado === 'boolean' ? { destacado } : {}),
     };
+    
     if (typeof categoria !== 'undefined') {
       data.categoria = { connect: { id: categoria } };
     }
     if (typeof proveedor !== 'undefined') {
       data.proveedor = { connect: { id: proveedor } };
     }
+    
     const actualizado = await prisma.producto.update({
-      where: { id },
+      where: { id: productoId },
       data,
       include: {
         categoria: true,
@@ -74,17 +94,19 @@ export async function PUT(req: NextRequest) {
   }
 }
 
-export async function DELETE(req: NextRequest) {
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
   try {
-    const url = new URL(req.url);
-    const idStr = url.pathname.split("/").pop();
-    const id = parseInt(idStr || "");
+    const { id } = await params;
+    const productoId = parseInt(id);
 
-    if (isNaN(id)) {
+    if (isNaN(productoId)) {
       return NextResponse.json({ error: "ID inválido" }, { status: 400 });
     }
 
-    await prisma.producto.delete({ where: { id } });
+    await prisma.producto.delete({ where: { id: productoId } });
 
     return NextResponse.json({ mensaje: "Producto eliminado correctamente" });
   } catch (error) {

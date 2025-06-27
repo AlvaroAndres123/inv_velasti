@@ -1,49 +1,65 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { prisma } from '@/lib/prisma';
 
 // DELETE: eliminar proveedor
-export async function DELETE(_: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id } = await params;
+  const proveedorId = parseInt(id);
+  if (isNaN(proveedorId)) {
+    return NextResponse.json({ error: 'ID inválido' }, { status: 400 });
+  }
   try {
-    const id = parseInt(params.id);
-    if (isNaN(id)) return NextResponse.json({ error: 'ID inválido' }, { status: 400 });
-
-    await prisma.proveedor.delete({ where: { id } });
-
-    return NextResponse.json({ mensaje: 'Proveedor eliminado' });
+    await prisma.proveedor.delete({ where: { id: proveedorId } });
+    return NextResponse.json({ mensaje: 'Proveedor eliminado correctamente' });
   } catch (error) {
-    console.error('Error al eliminar proveedor:', error);
     return NextResponse.json({ error: 'Error al eliminar proveedor' }, { status: 500 });
   }
 }
 
 // PUT: actualizar proveedor
-export async function PUT(req: NextRequest) {
-  const url = new URL(req.url);
-  const idStr = url.pathname.split('/').pop(); 
-  const id = Number(idStr);
-
-  if (isNaN(id)) {
+export async function PUT(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id } = await params;
+  const proveedorId = parseInt(id);
+  if (isNaN(proveedorId)) {
     return NextResponse.json({ error: 'ID inválido' }, { status: 400 });
   }
-
   const body = await req.json();
-  const { nombre, contacto, telefono, correo, direccion } = body;
-
-  if (!nombre || !contacto || !telefono || !correo || !direccion) {
-    return NextResponse.json({ error: 'Datos inválidos o incompletos' }, { status: 400 });
-  }
-
   try {
     const actualizado = await prisma.proveedor.update({
-      where: { id },
-      data: { nombre, contacto, telefono, correo, direccion },
+      where: { id: proveedorId },
+      data: body,
     });
-
     return NextResponse.json(actualizado);
   } catch (error) {
-    console.error('Error al actualizar proveedor:', error);
     return NextResponse.json({ error: 'Error al actualizar proveedor' }, { status: 500 });
+  }
+}
+
+export async function GET(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id } = await params;
+  const proveedorId = parseInt(id);
+  if (isNaN(proveedorId)) {
+    return NextResponse.json({ error: 'ID inválido' }, { status: 400 });
+  }
+  try {
+    const proveedor = await prisma.proveedor.findUnique({
+      where: { id: proveedorId },
+      include: { productos: true },
+    });
+    if (!proveedor) {
+      return NextResponse.json({ error: 'Proveedor no encontrado' }, { status: 404 });
+    }
+    return NextResponse.json(proveedor);
+  } catch (error) {
+    return NextResponse.json({ error: 'Error al obtener proveedor' }, { status: 500 });
   }
 }
