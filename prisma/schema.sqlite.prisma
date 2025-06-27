@@ -1,12 +1,12 @@
-// schema.prisma
+// schema.sqlite.prisma - Para desarrollo local
 
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider = "sqlite"
+  url      = "file:./dev.db"
 }
 
 model Usuario {
@@ -18,7 +18,6 @@ model Usuario {
   actividades Actividad[]
 }
 
-
 model Proveedor {
   id        Int       @id @default(autoincrement())
   nombre    String
@@ -29,8 +28,6 @@ model Proveedor {
   productos Producto[]
   creadoEn  DateTime  @default(now())
 }
-
-
 
 model Categoria {
   id        Int       @id @default(autoincrement())
@@ -79,4 +76,4 @@ model Actividad {
   fecha     DateTime @default(now())
   ip        String?
   detalles  String?
-}
+} 
